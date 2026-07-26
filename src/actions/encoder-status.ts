@@ -7,8 +7,11 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 
+import encoderEmptyTemplate from "../assets/encoder-empty.svg";
+import encoderFocusTemplate from "../assets/encoder-focus.svg";
 import type { AmpTopSnapshot, AmpTopThread } from "../amp/amp-top-source";
 import { isAmpThreadUrl } from "../amp/thread-url";
+import { renderSvgTemplate, svgDataUrl } from "../rendering/svg-template";
 import { ThreadStore } from "../state/thread-store";
 import {
 	chooseFocusedThread,
@@ -281,29 +284,30 @@ function renderFocusSlice(input: {
 			<circle cx="624" cy="50" r="6" fill="none" stroke="${statusColor}" stroke-width="1.7" stroke-linecap="round" stroke-dasharray="23 15"/>
 		</g>`
 			: `<circle cx="624" cy="50" r="3.5" fill="${statusColor}"/>`;
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${input.column * 200} 0 200 100">
-		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
-		<rect width="800" height="100" fill="${surfaceColor}"/>
-		<rect x="600" y="0" width="200" height="100" fill="${accentColor}" opacity=".035"/>
-		<g transform="translate(18 6) scale(.625)" fill="none" stroke="#595959" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M18 19a5 5 0 0 1-5-5v8"/>
-			<path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5"/>
-			<circle cx="13" cy="12" r="2"/><circle cx="20" cy="19" r="2"/>
-		</g>
-		<text x="40" y="18" fill="#595959" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${project}</text>
-		<text x="582" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">${position}</text>
-		${titleMarkup}
-		${executorGlyph}
-		<text x="40" y="84" fill="${executorTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${executorLabel}</text>
-		<text x="582" y="84" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED <tspan fill="${strongTextColor}" font-weight="700">${updated}</tspan>${usageMarkup}</text>
-		<line x1="600" y1="0" x2="600" y2="100" stroke="${borderColor}" stroke-width="2"/>
-		<text x="620" y="18" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">STATUS</text>
-		<text x="782" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">${phaseDuration}</text>
-		${activity}
-		<text x="638" y="56" fill="${statusColor}" font-family="Segoe UI, sans-serif" font-size="${input.model.status.length > 10 ? 16 : 20}" font-weight="700">${status}</text>
-		<text x="620" y="82" fill="${strongTextColor}" font-family="Segoe UI, sans-serif" font-size="11">${truncate(activityDetail, 30)}</text>
-	</svg>`;
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return svgDataUrl(
+		renderSvgTemplate(encoderFocusTemplate, {
+			viewBox: `${input.column * 200} 0 200 100`,
+			surfaceColor,
+			accentColor,
+			project,
+			mutedTextColor,
+			position,
+			titleMarkup,
+			executorGlyph,
+			executorTextColor,
+			executorLabel,
+			strongTextColor,
+			updated,
+			usageMarkup,
+			borderColor,
+			phaseDuration,
+			activity,
+			statusColor,
+			statusFontSize: input.model.status.length > 10 ? 16 : 20,
+			status,
+			activityDetail: truncate(activityDetail, 30),
+		}),
+	);
 }
 
 function renderEmptyFocusSlice(column: number, snapshot: AmpTopSnapshot): string {
@@ -317,14 +321,17 @@ function renderEmptyFocusSlice(column: number, snapshot: AmpTopSnapshot): string
 		snapshot.connection !== "live"
 			? "Thread inventory will reconnect automatically"
 			: "Waiting for an unarchived thread";
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${column * 200} 0 200 100">
-		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
-		<rect width="800" height="100" fill="${surfaceColor}"/>
-		<text x="400" y="45" text-anchor="middle" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">${status}</text>
-		<text x="400" y="70" text-anchor="middle" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="13">${detail}</text>
-		<rect x="0" y="96" width="800" height="3" fill="${borderColor}"/>
-	</svg>`;
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return svgDataUrl(
+		renderSvgTemplate(encoderEmptyTemplate, {
+			viewBox: `${column * 200} 0 200 100`,
+			surfaceColor,
+			inkColor,
+			status,
+			mutedTextColor,
+			detail,
+			borderColor,
+		}),
+	);
 }
 
 function truncate(value: string, length: number): string {

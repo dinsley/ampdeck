@@ -1,3 +1,8 @@
+import commandFeedbackTemplate from "../assets/command-feedback.svg";
+import commandKeyTemplate from "../assets/command-key.svg";
+import openThreadKeyTemplate from "../assets/open-thread-key.svg";
+import { renderSvgTemplate, svgDataUrl } from "./svg-template";
+
 export function renderCommandKey(options: {
 	label: string;
 	detail: string;
@@ -27,34 +32,24 @@ export function renderCommandKey(options: {
 			? ""
 			: `<rect x="18" y="126" width="108" height="6" rx="3" fill="#DDD2AA"/>
 			<rect x="18" y="126" width="${108 * progress}" height="6" rx="3" fill="${options.color}"/>`;
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
-		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
-		<rect width="144" height="144" rx="18" fill="${backgroundColor}"/>
-		<rect x="8" y="8" width="128" height="128" rx="14" fill="none" stroke="${outlineColor}" stroke-width="2" opacity="${opacity}"/>
-		${headerMarkup}
-		${detailMarkup}
-		${spinnerMarkup}
-		<text x="72" y="118" fill="#665F45" opacity="${opacity}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600" text-anchor="middle">${escapeXml(options.footer ?? "")}</text>
-		${progressMarkup}
-	</svg>`;
-
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return svgDataUrl(
+		renderSvgTemplate(commandKeyTemplate, {
+			backgroundColor,
+			outlineColor,
+			opacity,
+			headerMarkup,
+			detailMarkup,
+			spinnerMarkup,
+			footer: escapeXml(options.footer ?? ""),
+			progressMarkup,
+		}),
+	);
 }
 
 export function renderOpenThreadKey(options: { title?: string; dimmed: boolean }): string {
 	const opacity = options.dimmed ? 0.4 : 1;
 	const title = truncate(options.title ?? "NO THREAD", 15);
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
-		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
-		<rect width="144" height="144" rx="18" fill="#FEF3C7"/>
-		<rect x="8" y="8" width="128" height="128" rx="14" fill="none" stroke="#D8C98F" stroke-width="2" opacity="${opacity}"/>
-		<g transform="translate(58 34) scale(1.1667)" fill="none" stroke="#595959" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}">
-			<path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2zm-10-6h.01M16 11h.01M8 11h.01"/>
-		</g>
-		<text x="72" y="83" fill="#0B0D0B" opacity="${opacity}" font-size="18" font-weight="700" text-anchor="middle">OPEN</text>
-		<text x="72" y="105" fill="#27251D" opacity="${opacity}" font-size="13" font-weight="500" text-anchor="middle">${escapeXml(title)}</text>
-	</svg>`;
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return svgDataUrl(renderSvgTemplate(openThreadKeyTemplate, { opacity, title: escapeXml(title) }));
 }
 
 export type CommandFeedbackKind = "success" | "sent" | "unavailable" | "error";
@@ -68,14 +63,13 @@ export function renderCommandFeedback(kind: CommandFeedbackKind): string {
 				: `<circle cx="72" cy="62" r="20"/><path d="M72 51v14m0 8h.01"/>`;
 	const label =
 		kind === "success" ? "DONE" : kind === "sent" ? "SENT" : kind === "unavailable" ? "UNAVAILABLE" : "ERROR";
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
-		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
-		<rect width="144" height="144" rx="18" fill="#FFFDF7"/>
-		<rect x="8" y="8" width="128" height="128" rx="14" fill="none" stroke="#EFE9D7" stroke-width="2"/>
-		<g fill="none" stroke="#595959" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>
-		<text x="72" y="103" fill="#595959" font-size="${kind === "unavailable" ? 12 : 15}" font-weight="700" text-anchor="middle">${label}</text>
-	</svg>`;
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return svgDataUrl(
+		renderSvgTemplate(commandFeedbackTemplate, {
+			glyph,
+			fontSize: kind === "unavailable" ? 12 : 15,
+			label,
+		}),
+	);
 }
 
 function renderActionHeader(

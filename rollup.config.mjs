@@ -22,6 +22,14 @@ const config = {
 	},
 	plugins: [
 		{
+			name: "svg-as-string",
+			transform(source, id) {
+				if (id.endsWith(".svg")) {
+					return { code: `export default ${JSON.stringify(source)};`, map: null };
+				}
+			},
+		},
+		{
 			name: "watch-externals",
 			buildStart: function () {
 				this.addWatchFile(`${sdPlugin}/manifest.json`);
