@@ -1,31 +1,40 @@
 {
-    "scripts": {
-        "build": "rollup -c",
-        "typecheck": "tsc --noEmit",
+	"scripts": {
+		"build": "rollup -c",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "eslint . --max-warnings 0",
+		"typecheck": "tsc --noEmit",
 		"test": "node --test test/*.test.ts",
-        "validate": "streamdeck validate com.daniel-insley.amp-deck.sdPlugin",
-        "check": "npm run typecheck && npm test && npm run build && npm run validate",
-        "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.daniel-insley.amp-deck\""
-    },
-    "type": "module",
-    "engines": {
-        "node": ">=24"
-    },
-    "devDependencies": {
-        "@elgato/cli": "^1.5.1",
-        "@rollup/plugin-commonjs": "^28.0.0",
-        "@rollup/plugin-node-resolve": "^15.2.2",
-        "@rollup/plugin-terser": "^0.4.4",
-        "@rollup/plugin-typescript": "^12.1.0",
-        "@tsconfig/node24": "^24.0.4",
-        "@types/node": "~24.0.0",
-        "@types/ws": "^8.18.1",
-        "rollup": "^4.0.2",
-        "tslib": "^2.6.2",
-        "typescript": "^5.2.2"
-    },
-    "dependencies": {
-        "@elgato/streamdeck": "^2.1.0",
-        "ws": "^8.21.1"
-    }
+		"validate": "streamdeck validate com.daniel-insley.amp-deck.sdPlugin",
+		"check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run validate",
+		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.daniel-insley.amp-deck\""
+	},
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"devDependencies": {
+		"@elgato/cli": "^1.5.1",
+		"@eslint/js": "^9.39.5",
+		"@rollup/plugin-commonjs": "^28.0.0",
+		"@rollup/plugin-node-resolve": "^15.2.2",
+		"@rollup/plugin-terser": "^0.4.4",
+		"@rollup/plugin-typescript": "^12.1.0",
+		"@tsconfig/node24": "^24.0.4",
+		"@types/node": "~24.0.0",
+		"@types/ws": "^8.18.1",
+		"eslint": "^9.39.5",
+		"eslint-config-prettier": "^10.1.8",
+		"globals": "^17.8.0",
+		"prettier": "^3.9.6",
+		"rollup": "^4.0.2",
+		"tslib": "^2.6.2",
+		"typescript": "^5.2.2",
+		"typescript-eslint": "^8.65.0"
+	},
+	"dependencies": {
+		"@elgato/streamdeck": "^2.1.0",
+		"ws": "^8.21.1"
+	}
 }

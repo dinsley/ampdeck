@@ -17,18 +17,23 @@ export function resolveAmpCommand(
 
 export function runAmpCommand(args: string[], timeoutMs = 30_000): Promise<string> {
 	return new Promise((resolve, reject) => {
-		execFile(resolveAmpCommand(), args, {
-			env: ampEnvironment(),
-			maxBuffer: maximumOutputBytes,
-			timeout: timeoutMs,
-			windowsHide: true,
-		}, (error, stdout, stderr) => {
-			if (error) {
-				reject(new Error(stderr.trim() || error.message));
-				return;
-			}
-			resolve(stdout);
-		});
+		execFile(
+			resolveAmpCommand(),
+			args,
+			{
+				env: ampEnvironment(),
+				maxBuffer: maximumOutputBytes,
+				timeout: timeoutMs,
+				windowsHide: true,
+			},
+			(error, stdout, stderr) => {
+				if (error) {
+					reject(new Error(stderr.trim() || error.message));
+					return;
+				}
+				resolve(stdout);
+			},
+		);
 	});
 }
 
@@ -60,10 +65,13 @@ export function parseThreadSearchIds(output: string): Set<string> {
 	try {
 		const value: unknown = JSON.parse(output);
 		if (!Array.isArray(value)) return new Set();
-		return new Set(value.flatMap((thread) => {
-			if (typeof thread !== "object" || thread === null || !("id" in thread) || typeof thread.id !== "string") return [];
-			return [thread.id];
-		}));
+		const threadIds = new Set<string>();
+		for (const thread of value as unknown[]) {
+			if (typeof thread === "object" && thread !== null && "id" in thread && typeof thread.id === "string") {
+				threadIds.add(thread.id);
+			}
+		}
+		return threadIds;
 	} catch {
 		return new Set();
 	}

@@ -40,7 +40,10 @@ abstract class CliThreadCommand extends SingletonAction {
 	private animationTimer: NodeJS.Timeout | undefined;
 	private releaseStore: (() => void) | undefined;
 
-	constructor(private readonly store: ThreadStore, private readonly definition: CliCommandDefinition) {
+	constructor(
+		private readonly store: ThreadStore,
+		private readonly definition: CliCommandDefinition,
+	) {
 		super();
 		this.store.subscribe(() => void this.renderVisibleActions());
 	}
@@ -96,8 +99,8 @@ abstract class CliThreadCommand extends SingletonAction {
 		if (!hold) return;
 
 		const completed = performance.now() - hold.startedAt >= this.definition.holdMs;
-		const targetUnchanged = this.store.selectedThreadId === hold.threadId
-			&& this.store.selectionRevision === hold.selectionRevision;
+		const targetUnchanged =
+			this.store.selectedThreadId === hold.threadId && this.store.selectionRevision === hold.selectionRevision;
 		this.clearHold(ev.action.id);
 		if (completed && targetUnchanged && this.canStart(hold.threadId, hold.selectionRevision, ev.action.id)) {
 			await this.execute(ev.action, hold.threadId, hold.selectionRevision);
@@ -145,19 +148,29 @@ abstract class CliThreadCommand extends SingletonAction {
 
 	private isTargetReady(threadId: string, selectionRevision: number): boolean {
 		const thread = this.store.snapshot.threads.find((candidate) => candidate.id === threadId);
-		return this.store.selectedThreadId === threadId && this.store.selectionRevision === selectionRevision
-			&& Boolean(thread && !thread.working && this.store.snapshot.connection === "live");
+		return (
+			this.store.selectedThreadId === threadId &&
+			this.store.selectionRevision === selectionRevision &&
+			Boolean(thread && !thread.working && this.store.snapshot.connection === "live")
+		);
 	}
 
 	private canStart(threadId: string, selectionRevision: number, actionId: string): boolean {
-		return this.isTargetReady(threadId, selectionRevision)
-			&& !this.inFlightActionIds.has(actionId)
-			&& !this.inFlightThreadIds.has(threadId)
-			&& (this.cooldownUntil.get(threadId) ?? 0) <= performance.now();
+		return (
+			this.isTargetReady(threadId, selectionRevision) &&
+			!this.inFlightActionIds.has(actionId) &&
+			!this.inFlightThreadIds.has(threadId) &&
+			(this.cooldownUntil.get(threadId) ?? 0) <= performance.now()
+		);
 	}
 
-	private async showFeedback(action: KeyDownEvent["action"], kind: CommandFeedbackKind, expectedGeneration = this.appearanceGenerations.get(action.id)): Promise<void> {
-		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration) return;
+	private async showFeedback(
+		action: KeyDownEvent["action"],
+		kind: CommandFeedbackKind,
+		expectedGeneration = this.appearanceGenerations.get(action.id),
+	): Promise<void> {
+		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration)
+			return;
 		const previousTimer = this.feedbackTimers.get(action.id);
 		if (previousTimer) clearTimeout(previousTimer);
 		this.feedback.set(action.id, kind);
@@ -178,17 +191,22 @@ abstract class CliThreadCommand extends SingletonAction {
 	}
 
 	private async renderVisibleActions(): Promise<void> {
-		await Promise.all(this.actions.map(async (action) => {
-			if (action.isKey() && this.visibleActionIds.has(action.id)) await this.render(action);
-		}));
+		await Promise.all(
+			this.actions.map(async (action) => {
+				if (action.isKey() && this.visibleActionIds.has(action.id)) await this.render(action);
+			}),
+		);
 	}
 
 	private ensureAnimationTimer(): void {
 		this.animationTimer ??= setInterval(() => {
-			if (this.store.selectedThread && (this.store.selectedThread.working
-				|| this.store.snapshot.connection !== "live"
-				|| this.inFlightActionIds.size > 0
-				|| this.cooldownUntil.size > 0)) {
+			if (
+				this.store.selectedThread &&
+				(this.store.selectedThread.working ||
+					this.store.snapshot.connection !== "live" ||
+					this.inFlightActionIds.size > 0 ||
+					this.cooldownUntil.size > 0)
+			) {
 				void this.renderVisibleActions();
 			}
 		}, 200);
@@ -201,27 +219,35 @@ abstract class CliThreadCommand extends SingletonAction {
 		const thread = this.store.selectedThread;
 		const inFlight = this.inFlightActionIds.has(action.id);
 		const coolingDown = Boolean(thread && (this.cooldownUntil.get(thread.id) ?? 0) > performance.now());
-		const available = Boolean(thread && !thread.working && this.store.snapshot.connection === "live" && !inFlight
-			&& !this.inFlightThreadIds.has(thread.id) && !coolingDown);
+		const available = Boolean(
+			thread &&
+			!thread.working &&
+			this.store.snapshot.connection === "live" &&
+			!inFlight &&
+			!this.inFlightThreadIds.has(thread.id) &&
+			!coolingDown,
+		);
 		const hold = this.holds.get(action.id);
 		const progress = hold ? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs) : 0;
-		const footer = thread?.working ? ""
-			: inFlight ? "BUSY" : coolingDown ? "SENT" : available ? "" : "UNAVAILABLE";
+		const footer = thread?.working ? "" : inFlight ? "BUSY" : coolingDown ? "SENT" : available ? "" : "UNAVAILABLE";
 
-		return action.setImage(renderCommandKey({
-			label: this.definition.label,
-			detail: thread?.title ?? "Select thread",
-			color: this.definition.color,
-			dimmed: !available,
-			footer,
-			progress: hold ? progress : undefined,
-			loading: Boolean(thread && !available),
-			icon: this.definition.icon,
-		}));
+		return action.setImage(
+			renderCommandKey({
+				label: this.definition.label,
+				detail: thread?.title ?? "Select thread",
+				color: this.definition.color,
+				dimmed: !available,
+				footer,
+				progress: hold ? progress : undefined,
+				loading: Boolean(thread && !available),
+				icon: this.definition.icon,
+			}),
+		);
 	}
 }
 
-const reviewPrompt = "Review the current changes for correctness and regressions. Prioritize substantive findings, fix high-confidence issues, and report remaining risks.";
+const reviewPrompt =
+	"Review the current changes for correctness and regressions. Prioritize substantive findings, fix high-confidence issues, and report remaining risks.";
 
 @action({ UUID: "com.daniel-insley.amp-deck.archive" })
 export class ArchiveThread extends CliThreadCommand {
@@ -246,7 +272,8 @@ export class ReviewThread extends CliThreadCommand {
 			holdMs: 1000,
 			cooldownMs: 10_000,
 			successFeedback: "sent",
-			execute: (threadId) => launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId]),
+			execute: (threadId) =>
+				launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId]),
 		});
 	}
 }

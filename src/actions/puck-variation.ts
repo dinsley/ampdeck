@@ -57,10 +57,7 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 		this.visibleActionIds.add(ev.action.id);
 		const puckNumber = resolvePuckNumber(ev.payload.settings) ?? randomPuckNumber();
 		this.currentNumbers.set(ev.action.id, puckNumber);
-		await Promise.all([
-			ev.action.setSettings({ puckNumber }),
-			ev.action.setImage(puckImage(puckNumber)),
-		]);
+		await Promise.all([ev.action.setSettings({ puckNumber }), ev.action.setImage(puckImage(puckNumber))]);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<PuckVariationSettings>): void {
@@ -74,7 +71,8 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 	}
 
 	override onKeyDown(ev: KeyDownEvent<PuckVariationSettings>): void {
-		if (ev.action.isKey() && this.visibleActionIds.has(ev.action.id)) this.pressedAt.set(ev.action.id, performance.now());
+		if (ev.action.isKey() && this.visibleActionIds.has(ev.action.id))
+			this.pressedAt.set(ev.action.id, performance.now());
 	}
 
 	override async onKeyUp(ev: KeyUpEvent<PuckVariationSettings>): Promise<void> {
@@ -130,5 +128,5 @@ function randomPuckNumber(excluding?: number): number {
 }
 
 function nextPuckNumber(current: number | undefined): number {
-	return current === undefined ? randomPuckNumber() : current % puckCount + 1;
+	return current === undefined ? randomPuckNumber() : (current % puckCount) + 1;
 }

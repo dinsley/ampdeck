@@ -116,8 +116,8 @@ abstract class ThreadCommand extends SingletonAction {
 		}
 
 		const completed = performance.now() - hold.startedAt >= this.definition.holdMs;
-		const targetUnchanged = this.store.selectedThreadId === hold.threadId
-			&& this.store.selectionRevision === hold.selectionRevision;
+		const targetUnchanged =
+			this.store.selectedThreadId === hold.threadId && this.store.selectionRevision === hold.selectionRevision;
 		this.clearHold(ev.action.id);
 		if (completed && targetUnchanged && this.canStart(hold.threadId, hold.selectionRevision, ev.action.id)) {
 			await this.execute(ev.action, hold.threadId, hold.selectionRevision);
@@ -145,12 +145,7 @@ abstract class ThreadCommand extends SingletonAction {
 		}
 		let result: CommandFeedbackKind = "success";
 		try {
-			await this.bridge.sendCommand(
-				threadId,
-				this.definition.command,
-				this.definition.content,
-				this.definition.intent,
-			);
+			await this.bridge.sendCommand(threadId, this.definition.command, this.definition.content, this.definition.intent);
 		} catch {
 			result = "error";
 		} finally {
@@ -163,18 +158,28 @@ abstract class ThreadCommand extends SingletonAction {
 	private isTargetReady(threadId: string, selectionRevision: number): boolean {
 		const thread = this.store.snapshot.threads.find((candidate) => candidate.id === threadId);
 		const alreadyShipping = this.definition.intent === "shipping" && thread?.phase === "shipping";
-		return this.store.selectedThreadId === threadId && this.store.selectionRevision === selectionRevision
-			&& Boolean(thread && !thread.working && !alreadyShipping && this.bridge.isThreadConnected(threadId));
+		return (
+			this.store.selectedThreadId === threadId &&
+			this.store.selectionRevision === selectionRevision &&
+			Boolean(thread && !thread.working && !alreadyShipping && this.bridge.isThreadConnected(threadId))
+		);
 	}
 
 	private canStart(threadId: string, selectionRevision: number, actionId: string): boolean {
-		return this.isTargetReady(threadId, selectionRevision)
-			&& !this.inFlightActionIds.has(actionId)
-			&& !this.inFlightThreadIds.has(threadId);
+		return (
+			this.isTargetReady(threadId, selectionRevision) &&
+			!this.inFlightActionIds.has(actionId) &&
+			!this.inFlightThreadIds.has(threadId)
+		);
 	}
 
-	private async showFeedback(action: KeyDownEvent["action"], kind: CommandFeedbackKind, expectedGeneration = this.appearanceGenerations.get(action.id)): Promise<void> {
-		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration) return;
+	private async showFeedback(
+		action: KeyDownEvent["action"],
+		kind: CommandFeedbackKind,
+		expectedGeneration = this.appearanceGenerations.get(action.id),
+	): Promise<void> {
+		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration)
+			return;
 		const previousTimer = this.feedbackTimers.get(action.id);
 		if (previousTimer) clearTimeout(previousTimer);
 		this.feedback.set(action.id, kind);
@@ -197,18 +202,25 @@ abstract class ThreadCommand extends SingletonAction {
 	}
 
 	private async renderVisibleActions(): Promise<void> {
-		await Promise.all(this.actions.map(async (action) => {
-			if (action.isKey() && this.visibleActionIds.has(action.id)) {
-				await this.render(action);
-			}
-		}));
+		await Promise.all(
+			this.actions.map(async (action) => {
+				if (action.isKey() && this.visibleActionIds.has(action.id)) {
+					await this.render(action);
+				}
+			}),
+		);
 	}
 
 	private ensureAnimationTimer(): void {
 		this.animationTimer ??= setInterval(() => {
 			const thread = this.store.selectedThread;
-			if (thread && (this.inFlightActionIds.size > 0 || thread.working || thread.phase === "shipping"
-				|| !this.bridge.isThreadConnected(thread.id))) {
+			if (
+				thread &&
+				(this.inFlightActionIds.size > 0 ||
+					thread.working ||
+					thread.phase === "shipping" ||
+					!this.bridge.isThreadConnected(thread.id))
+			) {
 				void this.renderVisibleActions();
 			}
 		}, 200);
@@ -220,30 +232,41 @@ abstract class ThreadCommand extends SingletonAction {
 		if (feedback) return action.setImage(renderCommandFeedback(feedback));
 		const thread = this.store.selectedThread;
 		const alreadyShipping = this.definition.intent === "shipping" && thread?.phase === "shipping";
-		const connected = Boolean(thread && !thread.working && this.bridge.isThreadConnected(thread.id) && !alreadyShipping);
+		const connected = Boolean(
+			thread && !thread.working && this.bridge.isThreadConnected(thread.id) && !alreadyShipping,
+		);
 		const inFlight = this.inFlightActionIds.has(action.id);
 		const threadInFlight = Boolean(thread && this.inFlightThreadIds.has(thread.id));
 		const hold = this.holds.get(action.id);
-		const progress = hold && this.definition.holdMs
-			? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs)
-			: 0;
-		const footer = alreadyShipping ? "SHIPPING" : thread?.working ? ""
-			: inFlight || threadInFlight ? "BUSY" : connected ? "" : "OFFLINE";
+		const progress =
+			hold && this.definition.holdMs ? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs) : 0;
+		const footer = alreadyShipping
+			? "SHIPPING"
+			: thread?.working
+				? ""
+				: inFlight || threadInFlight
+					? "BUSY"
+					: connected
+						? ""
+						: "OFFLINE";
 
-		return action.setImage(renderCommandKey({
-			label: this.definition.label,
-			detail: thread?.title ?? "Select thread",
-			color: this.definition.color,
-			dimmed: !connected || inFlight || threadInFlight,
-			footer,
-			progress: hold ? progress : undefined,
-			loading: Boolean(thread && (!connected || inFlight || threadInFlight)),
-			icon: this.definition.icon,
-		}));
+		return action.setImage(
+			renderCommandKey({
+				label: this.definition.label,
+				detail: thread?.title ?? "Select thread",
+				color: this.definition.color,
+				dimmed: !connected || inFlight || threadInFlight,
+				footer,
+				progress: hold ? progress : undefined,
+				loading: Boolean(thread && (!connected || inFlight || threadInFlight)),
+				icon: this.definition.icon,
+			}),
+		);
 	}
 }
 
-const shipPrompt = "Prepare and carry out the repository's configured shipping workflow for the current changes. Before changing shared state, inspect project guidance and current git state, verify relevant checks, and clearly report the intended destination. Do not force-push, rewrite history, bypass approvals, or guess when the destination or workflow is ambiguous; stop and ask instead.";
+const shipPrompt =
+	"Prepare and carry out the repository's configured shipping workflow for the current changes. Before changing shared state, inspect project guidance and current git state, verify relevant checks, and clearly report the intended destination. Do not force-push, rewrite history, bypass approvals, or guess when the destination or workflow is ambiguous; stop and ask instead.";
 
 @action({ UUID: "com.daniel-insley.amp-deck.ship" })
 export class ShipThread extends ThreadCommand {

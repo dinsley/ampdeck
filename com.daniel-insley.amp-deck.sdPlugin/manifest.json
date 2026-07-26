@@ -8,9 +8,7 @@
 			"UUID": "com.daniel-insley.amp-deck.status",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Displays one selected Amp thread across all four Stream Deck+ encoders.",
-			"Controllers": [
-				"Encoder"
-			],
+			"Controllers": ["Encoder"],
 			"Encoder": {
 				"layout": "layouts/encoder-status.json",
 				"TriggerDescription": {
@@ -32,9 +30,7 @@
 			"UUID": "com.daniel-insley.amp-deck.open-thread",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Opens the selected Amp thread.",
-			"Controllers": [
-				"Keypad"
-			],
+			"Controllers": ["Keypad"],
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
@@ -47,9 +43,7 @@
 			"UUID": "com.daniel-insley.amp-deck.puck-variation",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Shows a Puck variation; press for next, or hold for a random variation.",
-			"Controllers": [
-				"Keypad"
-			],
+			"Controllers": ["Keypad"],
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",

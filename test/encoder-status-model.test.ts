@@ -26,9 +26,10 @@ describe("encoder status model", () => {
 			thread("unread-b", { unread: true }),
 		];
 
-		assert.deepEqual(orderThreadsByAttention(threads, now).map(({ id }) => id), [
-			"input", "error", "unread-a", "unread-b", "shipping", "running-a", "running-b", "idle-a",
-		]);
+		assert.deepEqual(
+			orderThreadsByAttention(threads, now).map(({ id }) => id),
+			["input", "error", "unread-a", "unread-b", "shipping", "running-a", "running-b", "idle-a"],
+		);
 	});
 
 	it("keeps a valid current focus and falls back to the highest-priority thread", () => {
@@ -39,16 +40,26 @@ describe("encoder status model", () => {
 	});
 
 	it("calculates attention counts without counting unread as an alert", () => {
-		assert.deepEqual(getOverview([
-			thread("working", { working: true }),
-			thread("input", { companionState: "awaiting-approval", unread: true }),
-			thread("error", { companionState: "error" }),
-		]), { alerts: 2, unread: 1 });
+		assert.deepEqual(
+			getOverview([
+				thread("working", { working: true }),
+				thread("input", { companionState: "awaiting-approval", unread: true }),
+				thread("error", { companionState: "error" }),
+			]),
+			{ alerts: 2, unread: 1 },
+		);
 	});
 
 	it("tracks the current phase, resets duration, and prunes removed threads", () => {
 		const metadata = new Map<string, PhaseMetadata>();
-		updatePhaseMetadata(metadata, [{ id: "one", status: "THINKING" }, { id: "removed", status: "IDLE" }], 100);
+		updatePhaseMetadata(
+			metadata,
+			[
+				{ id: "one", status: "THINKING" },
+				{ id: "removed", status: "IDLE" },
+			],
+			100,
+		);
 		updatePhaseMetadata(metadata, [{ id: "one", status: "EDITING" }], 200);
 		updatePhaseMetadata(metadata, [{ id: "one", status: "TESTING" }], 300);
 		updatePhaseMetadata(metadata, [{ id: "one", status: "DONE" }], 400);
@@ -62,7 +73,9 @@ describe("encoder status model", () => {
 
 	it("splits long titles into at most two bounded lines", () => {
 		assert.deepEqual(splitTitle("Short title"), ["Short title"]);
-		const lines = splitTitle("Implement a durable and privacy-preserving Stream Deck status display for all active Amp threads with useful context");
+		const lines = splitTitle(
+			"Implement a durable and privacy-preserving Stream Deck status display for all active Amp threads with useful context",
+		);
 		assert.equal(lines.length, 2);
 		assert.ok(lines.every((line) => line.length <= 53));
 	});
@@ -72,7 +85,6 @@ function thread(id: string, overrides: Partial<AmpTopThread> = {}): AmpTopThread
 	return {
 		id,
 		title: id,
-		status: "idle",
 		working: false,
 		executorConnected: true,
 		updatedAt: new Date(now - 60_000).toISOString(),

@@ -50,7 +50,8 @@ export type ThreadCommandResultMessage = {
 	error?: string;
 };
 
-export type CompanionMessage = HelloMessage | HelloAuthenticateMessage | ThreadStatusMessage | ThreadCommandResultMessage;
+export type CompanionMessage =
+	HelloMessage | HelloAuthenticateMessage | ThreadStatusMessage | ThreadCommandResultMessage;
 
 export type BridgeMessage =
 	| { version: 2; type: "hello.challenge"; clientNonce: string; serverNonce: string; proof: string }

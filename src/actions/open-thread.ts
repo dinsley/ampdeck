@@ -67,8 +67,13 @@ export class OpenThread extends SingletonAction {
 		}
 	}
 
-	private async showFeedback(action: KeyDownEvent["action"], kind: CommandFeedbackKind, expectedGeneration = this.appearanceGenerations.get(action.id)): Promise<void> {
-		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration) return;
+	private async showFeedback(
+		action: KeyDownEvent["action"],
+		kind: CommandFeedbackKind,
+		expectedGeneration = this.appearanceGenerations.get(action.id),
+	): Promise<void> {
+		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration)
+			return;
 		const previousTimer = this.feedbackTimers.get(action.id);
 		if (previousTimer) clearTimeout(previousTimer);
 		this.feedback.set(action.id, kind);
@@ -83,11 +88,13 @@ export class OpenThread extends SingletonAction {
 	}
 
 	private async renderVisibleActions(): Promise<void> {
-		await Promise.all(this.actions.map(async (action) => {
-			if (action.isKey()) {
-				await this.render(action);
-			}
-		}));
+		await Promise.all(
+			this.actions.map(async (action) => {
+				if (action.isKey()) {
+					await this.render(action);
+				}
+			}),
+		);
 	}
 
 	private render(action: KeyDownEvent["action"]): Promise<void> {
@@ -95,9 +102,11 @@ export class OpenThread extends SingletonAction {
 		if (feedback) return action.setImage(renderCommandFeedback(feedback));
 		const thread = this.store.selectedThread;
 		const canOpen = Boolean(thread?.url && isAmpThreadUrl(thread.url));
-		return action.setImage(renderOpenThreadKey({
-			title: thread?.title,
-			dimmed: !canOpen,
-		}));
+		return action.setImage(
+			renderOpenThreadKey({
+				title: thread?.title,
+				dimmed: !canOpen,
+			}),
+		);
 	}
 }

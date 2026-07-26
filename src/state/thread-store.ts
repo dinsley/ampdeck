@@ -112,18 +112,20 @@ export class ThreadStore {
 			companionConnected: this.bridge.hasCompanion(),
 			threads: this.topSnapshot.threads.map((thread) => {
 				const status = this.bridge.getStatus(thread.id);
-				const shipping = this.bridge.observeShipping(thread.id, thread.working)
-					|| this.shippingThreadIds.has(thread.id);
+				const shipping =
+					this.bridge.observeShipping(thread.id, thread.working) || this.shippingThreadIds.has(thread.id);
 				return {
 					...thread,
 					usageCost: this.usageCosts.get(thread.id),
 					executorKind: status?.executorKind ?? "unknown",
 					companionConnected: this.bridge.isThreadConnected(thread.id),
-					...(status || shipping ? {
-						companionState: shipping ? "running" as const : status?.state,
-						phase: shipping ? "shipping" : status?.phase,
-						unread: status?.unread,
-					} : {}),
+					...(status || shipping
+						? {
+								companionState: shipping ? ("running" as const) : status?.state,
+								phase: shipping ? "shipping" : status?.phase,
+								unread: status?.unread,
+							}
+						: {}),
 				};
 			}),
 		};
@@ -135,7 +137,13 @@ export class ThreadStore {
 		this.shippingLabelsInFlight = true;
 		try {
 			const output = await runAmpCommand([
-				"--no-color", "threads", "search", "label:shipping", "--limit", "100", "--json",
+				"--no-color",
+				"threads",
+				"search",
+				"label:shipping",
+				"--limit",
+				"100",
+				"--json",
 			]);
 			const threadIds = parseThreadSearchIds(output);
 			if (!setsEqual(threadIds, this.shippingThreadIds)) {

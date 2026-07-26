@@ -104,7 +104,12 @@ export class BridgeServer {
 		return () => this.listeners.delete(listener);
 	}
 
-	sendCommand(threadId: string, command: ThreadCommandName, content?: string, intent?: ThreadCommandIntent): Promise<void> {
+	sendCommand(
+		threadId: string,
+		command: ThreadCommandName,
+		content?: string,
+		intent?: ThreadCommandIntent,
+	): Promise<void> {
 		const owners = this.getCommandOwners(threadId);
 		if (owners.length === 0) {
 			return Promise.reject(new Error("Amp companion is not connected for this thread"));
@@ -146,7 +151,13 @@ export class BridgeServer {
 		authenticationTimer.unref();
 
 		socket.on("message", (data) => {
-			const message = parseMessage(data.toString());
+			const message = parseMessage(
+				Array.isArray(data)
+					? Buffer.concat(data).toString()
+					: data instanceof ArrayBuffer
+						? Buffer.from(new Uint8Array(data)).toString()
+						: data.toString(),
+			);
 			const client = this.clients.get(socket);
 			if (!message || !client) {
 				socket.close(4002, "Invalid protocol message");
@@ -205,11 +216,16 @@ export class BridgeServer {
 			return;
 		}
 
-		if (message.type !== "hello.authenticate"
-			|| message.clientId !== client.clientId
-			|| message.clientNonce !== client.clientNonce
-			|| message.serverNonce !== client.serverNonce
-			|| !proofMatches(message.proof, proof(this.token, "client", message.clientId, message.clientNonce, message.serverNonce))) {
+		if (
+			message.type !== "hello.authenticate" ||
+			message.clientId !== client.clientId ||
+			message.clientNonce !== client.clientNonce ||
+			message.serverNonce !== client.serverNonce ||
+			!proofMatches(
+				message.proof,
+				proof(this.token, "client", message.clientId, message.clientNonce, message.serverNonce),
+			)
+		) {
 			socket.close(4003, "Authentication failed");
 			return;
 		}
@@ -307,27 +323,35 @@ function parseMessage(value: string): CompanionMessage | undefined {
 
 		if (message.type === "hello") {
 			return isBoundedString(message.clientId, 128) && isHex(message.clientNonce, 64)
-				? message as CompanionMessage : undefined;
+				? (message as CompanionMessage)
+				: undefined;
 		}
 		if (message.type === "hello.authenticate") {
-			return isBoundedString(message.clientId, 128) && isHex(message.clientNonce, 64)
-				&& isHex(message.serverNonce, 64) && isHex(message.proof, 64)
-				? message as CompanionMessage : undefined;
+			return isBoundedString(message.clientId, 128) &&
+				isHex(message.clientNonce, 64) &&
+				isHex(message.serverNonce, 64) &&
+				isHex(message.proof, 64)
+				? (message as CompanionMessage)
+				: undefined;
 		}
 		if (message.type === "thread.status") {
 			const states = new Set(["idle", "running", "awaiting-approval", "error", "done", "cancelled"]);
 			const executorKinds = new Set(["local", "remote", "unknown"]);
-			return isThreadId(message.threadID) && states.has(message.state as string)
-				&& isBoundedString(message.phase, 64)
-				&& (message.executorKind === undefined || executorKinds.has(message.executorKind as string))
-				&& (message.unread === undefined || typeof message.unread === "boolean")
-				? message as CompanionMessage : undefined;
+			return isThreadId(message.threadID) &&
+				states.has(message.state as string) &&
+				isBoundedString(message.phase, 64) &&
+				(message.executorKind === undefined || executorKinds.has(message.executorKind as string)) &&
+				(message.unread === undefined || typeof message.unread === "boolean")
+				? (message as CompanionMessage)
+				: undefined;
 		}
 		if (message.type === "thread.command.result") {
-			return isBoundedString(message.commandID, 64) && isThreadId(message.threadID)
-				&& typeof message.ok === "boolean"
-				&& (message.error === undefined || isBoundedString(message.error, 64))
-				? message as CompanionMessage : undefined;
+			return isBoundedString(message.commandID, 64) &&
+				isThreadId(message.threadID) &&
+				typeof message.ok === "boolean" &&
+				(message.error === undefined || isBoundedString(message.error, 64))
+				? (message as CompanionMessage)
+				: undefined;
 		}
 		return undefined;
 	} catch {

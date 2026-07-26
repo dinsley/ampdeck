@@ -13,7 +13,9 @@ export type Overview = {
 export function orderThreadsByAttention(threads: AmpTopThread[], now = Date.now()): AmpTopThread[] {
 	return threads
 		.map((thread, index) => ({ thread, index }))
-		.sort((left, right) => attentionRank(left.thread, now) - attentionRank(right.thread, now) || left.index - right.index)
+		.sort(
+			(left, right) => attentionRank(left.thread, now) - attentionRank(right.thread, now) || left.index - right.index,
+		)
 		.map(({ thread }) => thread);
 }
 
@@ -22,14 +24,18 @@ export function chooseFocusedThread(
 	selectedThreadId: string | undefined,
 	focusedThreadId: string | undefined,
 ): AmpTopThread | undefined {
-	return threads.find((thread) => thread.id === selectedThreadId)
-		?? threads.find((thread) => thread.id === focusedThreadId)
-		?? orderThreadsByAttention(threads)[0];
+	return (
+		threads.find((thread) => thread.id === selectedThreadId) ??
+		threads.find((thread) => thread.id === focusedThreadId) ??
+		orderThreadsByAttention(threads)[0]
+	);
 }
 
 export function getOverview(threads: AmpTopThread[]): Overview {
 	return {
-		alerts: threads.filter((thread) => thread.companionState === "awaiting-approval" || thread.companionState === "error").length,
+		alerts: threads.filter(
+			(thread) => thread.companionState === "awaiting-approval" || thread.companionState === "error",
+		).length,
 		unread: threads.filter((thread) => thread.unread).length,
 	};
 }

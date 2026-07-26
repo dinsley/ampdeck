@@ -121,10 +121,13 @@ export class EncoderStatus extends SingletonAction {
 	}
 
 	private async reconcileSnapshot(): Promise<void> {
-		updatePhaseMetadata(this.phaseMetadata, this.snapshot.threads.map((thread) => ({
-			id: thread.id,
-			status: getDisplayModel(thread).status,
-		})));
+		updatePhaseMetadata(
+			this.phaseMetadata,
+			this.snapshot.threads.map((thread) => ({
+				id: thread.id,
+				status: getDisplayModel(thread).status,
+			})),
+		);
 		this.ensureFocusedThread();
 		await this.renderVisibleActions();
 	}
@@ -140,18 +143,20 @@ export class EncoderStatus extends SingletonAction {
 	}
 
 	private async renderVisibleActions(): Promise<void> {
-		await Promise.all(this.actions.map(async (action) => {
-			if (!action.isDial()) {
-				return;
-			}
+		await Promise.all(
+			this.actions.map(async (action) => {
+				if (!action.isDial()) {
+					return;
+				}
 
-			if (this.visibleActionIds.has(action.id)) await this.render(action);
-		}));
+				if (this.visibleActionIds.has(action.id)) await this.render(action);
+			}),
+		);
 	}
 
 	private async refreshRunningActions(): Promise<void> {
-		await Promise.all(this.actions
-			.map(async (action) => {
+		await Promise.all(
+			this.actions.map(async (action) => {
 				if (!action.isDial()) {
 					return;
 				}
@@ -164,7 +169,8 @@ export class EncoderStatus extends SingletonAction {
 				if (displayed?.working || displayed?.phase === "shipping" || isAttentionThread(displayed)) {
 					await this.render(action);
 				}
-			}));
+			}),
+		);
 	}
 
 	private async render(action: EncoderAction): Promise<void> {
@@ -210,7 +216,6 @@ export class EncoderStatus extends SingletonAction {
 	private getAttentionOrderedThreads(): AmpTopThread[] {
 		return orderThreadsByAttention(this.snapshot.threads);
 	}
-
 }
 
 type DisplayModel = {
@@ -237,7 +242,10 @@ function getDisplayModel(thread: AmpTopThread): DisplayModel {
 	};
 }
 
-function getSemanticStatus(state: NonNullable<AmpTopThread["companionState"]>, phase: string): {
+function getSemanticStatus(
+	state: NonNullable<AmpTopThread["companionState"]>,
+	phase: string,
+): {
 	label: string;
 	visualStatus: VisualStatus;
 } {
@@ -262,11 +270,13 @@ function getSemanticStatus(state: NonNullable<AmpTopThread["companionState"]>, p
 }
 
 function wrap(value: number, length: number): number {
-	return (value % length + length) % length;
+	return ((value % length) + length) % length;
 }
 
 function isAttentionThread(thread: AmpTopThread | undefined): boolean {
-	return thread?.companionState === "awaiting-approval" || thread?.companionState === "error" || thread?.unread === true;
+	return (
+		thread?.companionState === "awaiting-approval" || thread?.companionState === "error" || thread?.unread === true
+	);
 }
 
 function renderFocusSlice(input: {
@@ -282,16 +292,17 @@ function renderFocusSlice(input: {
 	const position = escapeXml(input.position);
 	const status = escapeXml(input.model.status);
 	const statusColor = statusColors[input.model.visualStatus];
-	const accentColor = input.model.status === "NEEDS INPUT" || input.thread.unread
-			? statusColors.running
-			: statusColor;
+	const accentColor = input.model.status === "NEEDS INPUT" || input.thread.unread ? statusColors.running : statusColor;
 	const updated = escapeXml(formatRelativeUpdate(input.thread.updatedAt));
 	const executorLabel = getExecutorLabel(input.thread);
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
-	const executorKind = input.thread.executorKind === "local"
-		? "local"
-		: input.thread.executorConnected ? "remote" : input.thread.executorKind;
+	const executorKind =
+		input.thread.executorKind === "local"
+			? "local"
+			: input.thread.executorConnected
+				? "remote"
+				: input.thread.executorKind;
 	const executorGlyph = renderExecutorGlyph(executorKind, executorColor);
 	const usageMarkup = input.thread.usageCost
 		? `<text x="360" y="82" text-anchor="middle" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">USAGE ${escapeXml(input.thread.usageCost)}</text>`
@@ -299,24 +310,25 @@ function renderFocusSlice(input: {
 	const activityDetail = escapeXml(getActivityDetail(input.thread, input.model));
 	const overviewMarkup = renderOverview(input.summary);
 	const titleLines = splitTitle(input.thread.title);
-	const titleFontSize = titleLines.length === 1
-		? Math.max(18, Math.min(25, Math.floor(850 / Math.max(titleLines[0].length, 1))))
-		: 18;
-	const titleMarkup = titleLines.length === 1
-		? `<text x="18" y="53" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[0])}</text>`
-		: `<text x="18" y="40" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[0])}</text>
+	const titleFontSize =
+		titleLines.length === 1 ? Math.max(18, Math.min(25, Math.floor(850 / Math.max(titleLines[0].length, 1)))) : 18;
+	const titleMarkup =
+		titleLines.length === 1
+			? `<text x="18" y="53" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[0])}</text>`
+			: `<text x="18" y="40" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[0])}</text>
 			<text x="18" y="61" fill="${inkColor}" font-family="Segoe UI, sans-serif" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[1])}</text>`;
 	const phaseDuration = escapeXml(formatDuration(Date.now() - (input.phase?.startedAt ?? Date.now())));
 	const pulseRadius = [4.5, 5, 5.5, 5][input.animationFrame % 4];
-	const spinnerRotation = input.animationFrame * animationIntervalMs / 2600 * 360;
-	const activity = input.model.visualStatus === "running" || input.model.visualStatus === "shipping"
-		? `<g transform="rotate(${spinnerRotation} 624 50)" opacity=".6">
+	const spinnerRotation = ((input.animationFrame * animationIntervalMs) / 2600) * 360;
+	const activity =
+		input.model.visualStatus === "running" || input.model.visualStatus === "shipping"
+			? `<g transform="rotate(${spinnerRotation} 624 50)" opacity=".6">
 			<circle cx="624" cy="50" r="6" fill="none" stroke="${statusColor}" stroke-opacity=".18" stroke-width="1.7"/>
 			<circle cx="624" cy="50" r="6" fill="none" stroke="${statusColor}" stroke-width="1.7" stroke-linecap="round" stroke-dasharray="23 15"/>
 		</g>`
-		: isAttentionThread(input.thread)
-			? `<circle cx="624" cy="50" r="${pulseRadius}" fill="${statusColor}" opacity=".2"/><circle cx="624" cy="50" r="2.75" fill="${statusColor}"/>`
-			: `<circle cx="624" cy="50" r="3.5" fill="${statusColor}"/>`;
+			: isAttentionThread(input.thread)
+				? `<circle cx="624" cy="50" r="${pulseRadius}" fill="${statusColor}" opacity=".2"/><circle cx="624" cy="50" r="2.75" fill="${statusColor}"/>`
+				: `<circle cx="624" cy="50" r="3.5" fill="${statusColor}"/>`;
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${input.column * 200} 0 200 100">
 		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
 		<rect width="800" height="100" fill="${surfaceColor}"/>
@@ -345,16 +357,20 @@ function renderFocusSlice(input: {
 }
 
 function renderEmptyFocusSlice(column: number, snapshot: AmpTopSnapshot): string {
-	const status = snapshot.connection === "offline"
-		? "AMP CLI OFFLINE"
-		: snapshot.connection === "connecting"
-			? "CONNECTING TO AMP"
-			: snapshot.companionConnected === false ? "COMPANION OFFLINE" : "NO ACTIVE THREADS";
-	const detail = snapshot.connection !== "live"
-		? "Thread inventory will reconnect automatically"
-		: snapshot.companionConnected === false
-			? "Browsing is available; thread commands need Amp"
-			: "Waiting for an unarchived thread";
+	const status =
+		snapshot.connection === "offline"
+			? "AMP CLI OFFLINE"
+			: snapshot.connection === "connecting"
+				? "CONNECTING TO AMP"
+				: snapshot.companionConnected === false
+					? "COMPANION OFFLINE"
+					: "NO ACTIVE THREADS";
+	const detail =
+		snapshot.connection !== "live"
+			? "Thread inventory will reconnect automatically"
+			: snapshot.companionConnected === false
+				? "Browsing is available; thread commands need Amp"
+				: "Waiting for an unarchived thread";
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${column * 200} 0 200 100">
 		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
 		<rect width="800" height="100" fill="${surfaceColor}"/>

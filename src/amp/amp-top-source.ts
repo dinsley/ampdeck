@@ -148,15 +148,17 @@ function parseSnapshot(line: string): AmpTopSnapshot | undefined {
 				return [];
 			}
 
-			return [{
-				id: thread.id,
-				title: typeof thread.title === "string" ? thread.title : thread.id,
-				url: typeof thread.url === "string" ? thread.url : undefined,
-				project: typeof thread.project === "string" ? thread.project : undefined,
-				updatedAt: typeof thread.updatedAt === "string" ? thread.updatedAt : undefined,
-				working: thread.working === true,
-				executorConnected: thread.executorConnected === true,
-			}];
+			return [
+				{
+					id: thread.id,
+					title: typeof thread.title === "string" ? thread.title : thread.id,
+					url: typeof thread.url === "string" ? thread.url : undefined,
+					project: typeof thread.project === "string" ? thread.project : undefined,
+					updatedAt: typeof thread.updatedAt === "string" ? thread.updatedAt : undefined,
+					working: thread.working === true,
+					executorConnected: thread.executorConnected === true,
+				},
+			];
 		});
 
 		return {

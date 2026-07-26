@@ -18,4 +18,4 @@ streamDeck.actions.registerAction(new ShipThread(threadStore, bridge));
 streamDeck.actions.registerAction(new ArchiveThread(threadStore));
 streamDeck.actions.registerAction(new ReviewThread(threadStore));
 
-streamDeck.connect();
+void streamDeck.connect();
