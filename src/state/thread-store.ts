@@ -3,6 +3,7 @@ import { reachedUsageBoundary } from "../actions/encoder-status-model";
 import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
+type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 
 const usageRetryDelaysMs = [1_000, 5_000, 15_000];
 
@@ -11,7 +12,8 @@ export class ThreadStore {
 	private shippingLabelsInFlight = false;
 	private shippingLabelsTimer: NodeJS.Timeout | undefined;
 	private shippingThreadIds = new Set<string>();
-	private readonly source = new AmpTopSource();
+	private readonly source: TopSource;
+	private readonly runCommand: typeof runAmpCommand;
 	private readonly usageCosts = new Map<string, string>();
 	private usageInFlight = false;
 	private usageRetryTimer: NodeJS.Timeout | undefined;
@@ -23,7 +25,9 @@ export class ThreadStore {
 	selectedThreadId: string | undefined;
 	snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 
-	constructor() {
+	constructor(source: TopSource = new AmpTopSource(), runCommand: typeof runAmpCommand = runAmpCommand) {
+		this.source = source;
+		this.runCommand = runCommand;
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
 			this.topSnapshot = snapshot;
@@ -133,7 +137,7 @@ export class ThreadStore {
 		if (this.shippingLabelsInFlight) return;
 		this.shippingLabelsInFlight = true;
 		try {
-			const output = await runAmpCommand([
+			const output = await this.runCommand([
 				"--no-color",
 				"threads",
 				"search",
@@ -160,9 +164,9 @@ export class ThreadStore {
 
 		this.usageInFlight = true;
 		try {
-			const output = await runAmpCommand(["--no-color", "threads", "usage", threadId]);
+			const output = await this.runCommand(["--no-color", "threads", "usage", threadId]);
 			const cost = parseThreadUsageCost(output);
-			if (cost && this.selectedThreadId === threadId) {
+			if (cost) {
 				this.usageCosts.set(threadId, cost);
 				this.rebuildSnapshot();
 			}

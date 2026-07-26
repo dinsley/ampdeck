@@ -5,7 +5,7 @@
 		"format:check": "prettier --check .",
 		"lint": "eslint . --max-warnings 0",
 		"typecheck": "tsc --noEmit",
-		"test": "node --test test/*.test.ts",
+		"test": "tsx --test test/*.test.ts",
 		"validate": "streamdeck validate com.daniel-insley.amp-deck.sdPlugin",
 		"check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run validate",
 		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.daniel-insley.amp-deck\""
@@ -29,6 +29,7 @@
 		"prettier": "^3.9.6",
 		"rollup": "^4.0.2",
 		"tslib": "^2.6.2",
+		"tsx": "^4.23.1",
 		"typescript": "^5.2.2",
 		"typescript-eslint": "^8.65.0"
 	},
