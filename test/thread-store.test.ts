@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { reachedUsageBoundary } from "../src/actions/encoder-status-model.ts";
-import type { AmpTopSnapshot, AmpTopThread } from "../src/amp/amp-top-source.ts";
+import type { AmpTopSnapshot } from "../src/amp/amp-top-source.ts";
+import type { AmpTopThread } from "../src/amp/amp-top-model.ts";
 import { ThreadStore } from "../src/state/thread-store.ts";
+import { ShippingLifecycle, ThreadActionGate } from "../src/state/thread-store-model.ts";
 
 describe("thread usage refresh boundaries", () => {
 	it("detects completion reported by amp top", () => {
@@ -44,6 +46,68 @@ describe("thread usage cache", () => {
 			["$1.23", "$4.56"],
 		);
 		store.dispose();
+	});
+});
+
+describe("shared per-thread action gate", () => {
+	it("atomically excludes concurrent action types and releases after failure", () => {
+		const gate = new ThreadActionGate();
+		assert.equal(gate.tryAcquire("T-thread", 0), true);
+		assert.equal(gate.tryAcquire("T-thread", 0), false);
+		assert.equal(gate.tryAcquire("T-other", 0), true);
+		gate.release("T-thread", 0, 0);
+		assert.equal(gate.tryAcquire("T-thread", 0), true);
+	});
+
+	it("holds a shared cooldown after successful dispatch", () => {
+		const gate = new ThreadActionGate();
+		assert.equal(gate.tryAcquire("T-thread", 0), true);
+		gate.release("T-thread", 10_000, 0);
+		assert.equal(gate.tryAcquire("T-thread", 9_999), false);
+		assert.equal(gate.tryAcquire("T-thread", 10_000), true);
+	});
+});
+
+describe("shipping lifecycle", () => {
+	it("marks dispatch immediately and clears after the working transition", () => {
+		const lifecycle = new ShippingLifecycle();
+		lifecycle.markDispatched("T-thread", 0);
+		assert.equal(lifecycle.isShipping(thread()), true);
+		lifecycle.reconcile([thread({ working: true })], 1);
+		assert.equal(lifecycle.isShipping(thread({ working: true })), true);
+		lifecycle.reconcile([thread({ working: false })], 2);
+		assert.equal(lifecycle.isShipping(thread()), false);
+	});
+
+	it("keeps shipping through a non-authoritative reconnect gap", () => {
+		const lifecycle = new ShippingLifecycle();
+		lifecycle.markDispatched("T-thread", 0);
+		lifecycle.reconcile([thread({ working: true })], 1);
+		// ThreadStore intentionally does not reconcile connecting or offline snapshots.
+		assert.equal(lifecycle.isShipping(thread()), true);
+		lifecycle.reconcile([thread({ working: false })], 2);
+		assert.equal(lifecycle.isShipping(thread()), false);
+	});
+
+	it("uses persistent labels only to recover an actively working workflow", () => {
+		const lifecycle = new ShippingLifecycle();
+		lifecycle.setLabels(new Set(["T-thread"]));
+		assert.equal(lifecycle.isShipping(thread()), false);
+		assert.equal(lifecycle.isShipping(thread({ working: true })), true);
+	});
+
+	it("expires a dispatch that never starts", () => {
+		const lifecycle = new ShippingLifecycle(100);
+		lifecycle.markDispatched("T-thread", 0);
+		lifecycle.reconcile([thread()], 100);
+		assert.equal(lifecycle.isShipping(thread()), false);
+	});
+
+	it("captures working that begins before command acknowledgement", () => {
+		const lifecycle = new ShippingLifecycle();
+		lifecycle.markDispatched("T-thread", 0, true);
+		lifecycle.reconcile([thread({ working: false })], 1);
+		assert.equal(lifecycle.isShipping(thread()), false);
 	});
 });
 

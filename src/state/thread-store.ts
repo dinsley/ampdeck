@@ -1,6 +1,7 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
 import { reachedUsageBoundary } from "../actions/encoder-status-model";
 import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { ShippingLifecycle, ThreadActionGate } from "./thread-store-model";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
@@ -8,10 +9,12 @@ type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 const usageRetryDelaysMs = [1_000, 5_000, 15_000];
 
 export class ThreadStore {
+	private readonly actionCooldownTimers = new Map<string, NodeJS.Timeout>();
+	private readonly actionGate = new ThreadActionGate();
 	private readonly listeners = new Set<ThreadStoreListener>();
+	private readonly shippingLifecycle = new ShippingLifecycle();
 	private shippingLabelsInFlight = false;
 	private shippingLabelsTimer: NodeJS.Timeout | undefined;
-	private shippingThreadIds = new Set<string>();
 	private readonly source: TopSource;
 	private readonly runCommand: typeof runAmpCommand;
 	private readonly usageCosts = new Map<string, string>();
@@ -31,6 +34,7 @@ export class ThreadStore {
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
 			this.topSnapshot = snapshot;
+			if (snapshot.connection === "live") this.reconcileShippingDispatches();
 			this.rebuildSnapshot();
 			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
 		});
@@ -38,6 +42,42 @@ export class ThreadStore {
 
 	get selectedThread(): AmpTopThread | undefined {
 		return this.snapshot.threads.find((thread) => thread.id === this.selectedThreadId);
+	}
+
+	tryAcquireThreadAction(threadId: string): boolean {
+		if (!this.actionGate.tryAcquire(threadId)) return false;
+		this.notify();
+		return true;
+	}
+
+	releaseThreadAction(threadId: string, cooldownMs = 0): void {
+		this.actionGate.release(threadId, cooldownMs);
+		const previousTimer = this.actionCooldownTimers.get(threadId);
+		if (previousTimer) clearTimeout(previousTimer);
+		if (cooldownMs > 0) {
+			const timer = setTimeout(() => {
+				this.actionCooldownTimers.delete(threadId);
+				this.actionGate.clearCooldown(threadId);
+				this.notify();
+			}, cooldownMs);
+			timer.unref();
+			this.actionCooldownTimers.set(threadId, timer);
+		}
+		this.notify();
+	}
+
+	isThreadActionBlocked(threadId: string): boolean {
+		return this.actionGate.isBlocked(threadId);
+	}
+
+	isThreadActionInFlight(threadId: string): boolean {
+		return this.actionGate.isInFlight(threadId);
+	}
+
+	markShippingDispatched(threadId: string): void {
+		const alreadyWorking = this.topSnapshot.threads.find((thread) => thread.id === threadId)?.working ?? false;
+		this.shippingLifecycle.markDispatched(threadId, Date.now(), alreadyWorking);
+		this.rebuildSnapshot();
 	}
 
 	acquire(): () => void {
@@ -107,6 +147,9 @@ export class ThreadStore {
 		this.shippingLabelsTimer = undefined;
 		this.usageTimer = undefined;
 		this.cancelUsageRetries();
+		for (const timer of this.actionCooldownTimers.values()) clearTimeout(timer);
+		this.actionCooldownTimers.clear();
+		this.actionGate.clear();
 		this.users = 0;
 		this.listeners.clear();
 	}
@@ -127,7 +170,7 @@ export class ThreadStore {
 			threads: this.topSnapshot.threads.map((thread) => ({
 				...thread,
 				usageCost: this.usageCosts.get(thread.id),
-				phase: this.shippingThreadIds.has(thread.id) ? "shipping" : undefined,
+				phase: this.shippingLifecycle.isShipping(thread) ? "shipping" : undefined,
 			})),
 		};
 		this.notify();
@@ -147,8 +190,8 @@ export class ThreadStore {
 				"--json",
 			]);
 			const threadIds = parseThreadSearchIds(output);
-			if (!setsEqual(threadIds, this.shippingThreadIds)) {
-				this.shippingThreadIds = threadIds;
+			if (threadIds) {
+				this.shippingLifecycle.setLabels(threadIds);
 				this.rebuildSnapshot();
 			}
 		} catch {
@@ -202,8 +245,8 @@ export class ThreadStore {
 		if (this.usageRetryTimer) clearTimeout(this.usageRetryTimer);
 		this.usageRetryTimer = undefined;
 	}
-}
 
-function setsEqual(left: Set<string>, right: Set<string>): boolean {
-	return left.size === right.size && [...left].every((value) => right.has(value));
+	private reconcileShippingDispatches(): void {
+		this.shippingLifecycle.reconcile(this.topSnapshot.threads);
+	}
 }

@@ -19,7 +19,9 @@ type CliCommandDefinition = {
 	cooldownMs?: number;
 	successFeedback?: CommandFeedbackKind;
 	unavailableWhileShipping?: boolean;
+	requiresConnectedExecutor?: boolean;
 	execute: (threadId: string) => Promise<unknown>;
+	onAccepted?: (threadId: string) => void;
 };
 
 type HoldState = {
@@ -31,12 +33,10 @@ type HoldState = {
 
 abstract class CliThreadCommand extends SingletonAction {
 	private readonly appearanceGenerations = new Map<string, number>();
-	private readonly cooldownUntil = new Map<string, number>();
 	private readonly feedback = new Map<string, CommandFeedbackKind>();
 	private readonly feedbackTimers = new Map<string, NodeJS.Timeout>();
 	private readonly holds = new Map<string, HoldState>();
 	private readonly inFlightActionIds = new Set<string>();
-	private readonly inFlightThreadIds = new Set<string>();
 	private readonly visibleActionIds = new Set<string>();
 	private animationTimer: NodeJS.Timeout | undefined;
 	private releaseStore: (() => void) | undefined;
@@ -115,55 +115,50 @@ abstract class CliThreadCommand extends SingletonAction {
 	}
 
 	private async execute(action: KeyDownEvent["action"], threadId: string, selectionRevision: number): Promise<void> {
-		if (!this.canStart(threadId, selectionRevision, action.id)) {
+		if (!this.canStart(threadId, selectionRevision, action.id) || !this.store.tryAcquireThreadAction(threadId)) {
 			await this.showFeedback(action, "unavailable");
 			return;
 		}
 		this.inFlightActionIds.add(action.id);
-		this.inFlightThreadIds.add(threadId);
 		const appearanceGeneration = this.appearanceGenerations.get(action.id);
-		await this.render(action);
-		if (!this.isTargetReady(threadId, selectionRevision)) {
-			this.inFlightActionIds.delete(action.id);
-			this.inFlightThreadIds.delete(threadId);
-			await this.showFeedback(action, "unavailable");
-			return;
-		}
 		let result: CommandFeedbackKind = this.definition.successFeedback ?? "success";
+		let commandAccepted = false;
 		try {
-			await this.definition.execute(threadId);
-			if (this.definition.cooldownMs) {
-				this.cooldownUntil.set(threadId, performance.now() + this.definition.cooldownMs);
-				const timer = setTimeout(() => {
-					this.cooldownUntil.delete(threadId);
-					logBackgroundError(this.renderVisibleActions(), `restore ${this.definition.label} action`);
-				}, this.definition.cooldownMs);
-				timer.unref();
+			await this.render(action);
+			if (this.isTargetReady(threadId, selectionRevision)) {
+				await this.definition.execute(threadId);
+				commandAccepted = true;
+				this.definition.onAccepted?.(threadId);
+			} else {
+				result = "unavailable";
 			}
 		} catch (error) {
 			streamDeck.logger.warn(`${this.definition.label} command failed: ${getErrorMessage(error)}`);
 			result = "error";
 		} finally {
 			this.inFlightActionIds.delete(action.id);
-			this.inFlightThreadIds.delete(threadId);
-			await this.showFeedback(action, result, appearanceGeneration);
-			if (
-				result === "error" &&
-				this.visibleActionIds.has(action.id) &&
-				this.appearanceGenerations.get(action.id) === appearanceGeneration
-			) {
-				await action.showAlert();
-			}
+			this.store.releaseThreadAction(threadId, commandAccepted ? (this.definition.cooldownMs ?? 0) : 0);
+		}
+		await this.showFeedback(action, result, appearanceGeneration);
+		if (
+			result === "error" &&
+			this.visibleActionIds.has(action.id) &&
+			this.appearanceGenerations.get(action.id) === appearanceGeneration
+		) {
+			await action.showAlert();
 		}
 	}
 
 	private isTargetReady(threadId: string, selectionRevision: number): boolean {
 		const thread = this.store.snapshot.threads.find((candidate) => candidate.id === threadId);
 		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
+		const missingExecutor = this.definition.requiresConnectedExecutor && !thread?.executorConnected;
 		return (
 			this.store.selectedThreadId === threadId &&
 			this.store.selectionRevision === selectionRevision &&
-			Boolean(thread && !thread.working && !unavailable && this.store.snapshot.connection === "live")
+			Boolean(
+				thread && !thread.working && !unavailable && !missingExecutor && this.store.snapshot.connection === "live",
+			)
 		);
 	}
 
@@ -171,8 +166,7 @@ abstract class CliThreadCommand extends SingletonAction {
 		return (
 			this.isTargetReady(threadId, selectionRevision) &&
 			!this.inFlightActionIds.has(actionId) &&
-			!this.inFlightThreadIds.has(threadId) &&
-			(this.cooldownUntil.get(threadId) ?? 0) <= performance.now()
+			!this.store.isThreadActionBlocked(threadId)
 		);
 	}
 
@@ -219,7 +213,7 @@ abstract class CliThreadCommand extends SingletonAction {
 				(this.store.selectedThread.working ||
 					this.store.snapshot.connection !== "live" ||
 					this.inFlightActionIds.size > 0 ||
-					this.cooldownUntil.size > 0)
+					this.store.isThreadActionBlocked(this.store.selectedThread.id))
 			) {
 				logBackgroundError(this.renderVisibleActions(), `animate ${this.definition.label} action`);
 			}
@@ -232,16 +226,18 @@ abstract class CliThreadCommand extends SingletonAction {
 		if (feedback) return action.setImage(renderCommandFeedback(feedback));
 		const thread = this.store.selectedThread;
 		const inFlight = this.inFlightActionIds.has(action.id);
-		const coolingDown = Boolean(thread && (this.cooldownUntil.get(thread.id) ?? 0) > performance.now());
+		const threadInFlight = Boolean(thread && this.store.isThreadActionInFlight(thread.id));
+		const blocked = Boolean(thread && this.store.isThreadActionBlocked(thread.id));
 		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
+		const missingExecutor = this.definition.requiresConnectedExecutor && !thread?.executorConnected;
 		const available = Boolean(
 			thread &&
 			!thread.working &&
 			!unavailable &&
+			!missingExecutor &&
 			this.store.snapshot.connection === "live" &&
 			!inFlight &&
-			!this.inFlightThreadIds.has(thread.id) &&
-			!coolingDown,
+			!blocked,
 		);
 		const hold = this.holds.get(action.id);
 		const progress = hold ? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs) : 0;
@@ -249,9 +245,9 @@ abstract class CliThreadCommand extends SingletonAction {
 			? "SHIPPING"
 			: thread?.working
 				? ""
-				: inFlight
+				: inFlight || threadInFlight
 					? "BUSY"
-					: coolingDown
+					: blocked
 						? "SENT"
 						: available
 							? ""
@@ -285,6 +281,7 @@ export class ArchiveThread extends CliThreadCommand {
 			color: "#D6A038",
 			icon: "archive",
 			holdMs: 1500,
+			unavailableWhileShipping: true,
 			execute: (threadId) => runAmpCommand(["--no-color", "threads", "archive", threadId]),
 		});
 	}
@@ -300,8 +297,10 @@ export class ReviewThread extends CliThreadCommand {
 			holdMs: 1000,
 			cooldownMs: 10_000,
 			successFeedback: "sent",
+			unavailableWhileShipping: true,
+			requiresConnectedExecutor: true,
 			execute: (threadId) =>
-				launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId]),
+				launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId], threadId),
 		});
 	}
 }
@@ -316,18 +315,14 @@ export class ShipThread extends CliThreadCommand {
 			holdMs: 2000,
 			successFeedback: "sent",
 			unavailableWhileShipping: true,
+			requiresConnectedExecutor: true,
 			cooldownMs: 10_000,
+			onAccepted: (threadId) => store.markShippingDispatched(threadId),
 			execute: (threadId) =>
-				launchAmpCommand([
-					"--no-color",
-					"--label",
-					"shipping",
-					"--execute",
-					shipPrompt,
-					"threads",
-					"continue",
+				launchAmpCommand(
+					["--no-color", "--label", "shipping", "--execute", shipPrompt, "threads", "continue", threadId],
 					threadId,
-				]),
+				),
 		});
 	}
 }

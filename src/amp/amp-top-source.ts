@@ -3,23 +3,9 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import streamDeck from "@elgato/streamdeck";
 
 import { resolveAmpCommand } from "./amp-command";
+import { JsonlLineBuffer, parseSnapshot, type AmpTopSnapshot } from "./amp-top-model";
 
-export type AmpTopThread = {
-	id: string;
-	title: string;
-	url?: string;
-	project?: string;
-	updatedAt?: string;
-	working: boolean;
-	executorConnected: boolean;
-	phase?: string;
-	usageCost?: string;
-};
-
-export type AmpTopSnapshot = {
-	connection: "connecting" | "live" | "offline";
-	threads: AmpTopThread[];
-};
+export type { AmpTopSnapshot, AmpTopThread } from "./amp-top-model";
 
 type SnapshotListener = (snapshot: AmpTopSnapshot) => void;
 
@@ -67,22 +53,29 @@ export class AmpTopSource {
 		});
 		this.child = child;
 
-		let stdoutBuffer = "";
+		const stdout = new JsonlLineBuffer();
 		let stderr = "";
+		let schemaWarningLogged = false;
+		const processLine = (line: string): void => {
+			const snapshot = parseSnapshot(line);
+			if (snapshot) {
+				schemaWarningLogged = false;
+				this.update(snapshot);
+			} else {
+				this.update({ ...this.snapshot, connection: "offline" });
+				if (!schemaWarningLogged) {
+					schemaWarningLogged = true;
+					streamDeck.logger.warn("Amp status schema mismatch; controls are disabled until a valid snapshot arrives");
+				}
+			}
+		};
 		child.stdout.setEncoding("utf8");
 		child.stderr.setEncoding("utf8");
 		child.stdout.on("data", (chunk: string) => {
 			if (!this.started || this.child !== child) return;
-			stdoutBuffer += chunk;
-			const lines = stdoutBuffer.split(/\r?\n/);
-			stdoutBuffer = lines.pop() ?? "";
-
-			for (const line of lines) {
+			for (const event of stdout.push(chunk)) {
 				if (!this.started || this.child !== child) return;
-				const snapshot = parseSnapshot(line);
-				if (snapshot) {
-					this.update(snapshot);
-				}
+				processLine(event.kind === "line" ? event.line : "");
 			}
 		});
 		child.stderr.on("data", (chunk: string) => {
@@ -102,6 +95,8 @@ export class AmpTopSource {
 				return;
 			}
 
+			const finalLine = stdout.finish();
+			if (finalLine) processLine(finalLine);
 			this.child = undefined;
 			if (stderr.trim()) {
 				streamDeck.logger.warn(`Amp status source exited (${code ?? "unknown"}): ${stderr.trim()}`);
@@ -129,42 +124,4 @@ export class AmpTopSource {
 		this.snapshot = snapshot;
 		this.listener?.(snapshot);
 	}
-}
-
-function parseSnapshot(line: string): AmpTopSnapshot | undefined {
-	try {
-		const value: unknown = JSON.parse(line);
-		if (!isRecord(value) || !Array.isArray(value.threads)) {
-			return undefined;
-		}
-
-		const threads = value.threads.flatMap((thread): AmpTopThread[] => {
-			if (!isRecord(thread) || typeof thread.id !== "string") {
-				return [];
-			}
-
-			return [
-				{
-					id: thread.id,
-					title: typeof thread.title === "string" ? thread.title : thread.id,
-					url: typeof thread.url === "string" ? thread.url : undefined,
-					project: typeof thread.project === "string" ? thread.project : undefined,
-					updatedAt: typeof thread.updatedAt === "string" ? thread.updatedAt : undefined,
-					working: thread.working === true,
-					executorConnected: thread.executorConnected === true,
-				},
-			];
-		});
-
-		return {
-			connection: value.reconnecting === true ? "connecting" : "live",
-			threads,
-		};
-	} catch {
-		return undefined;
-	}
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
 }
