@@ -261,7 +261,7 @@ function renderFocusSlice(input: {
 	const accentColor = statusColor;
 	const updated = escapeXml(formatRelativeUpdate(input.thread.updatedAt));
 	const usage = escapeXml(input.thread.usageCost ?? "—");
-	const usageMarkup = `<tspan fill="${mutedTextColor}"> • COST </tspan><tspan fill="${strongTextColor}" font-weight="700">${usage}</tspan>`;
+	const usageMarkup = `<tspan fill="${mutedTextColor}">&#160;&#160;•&#160;&#160;COST </tspan><tspan fill="${strongTextColor}" font-weight="700">${usage}</tspan>`;
 	const executorLabel = getExecutorLabel(input.thread);
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
