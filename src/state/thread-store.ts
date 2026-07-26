@@ -109,6 +109,16 @@ export class ThreadStore {
 		return () => this.listeners.delete(listener);
 	}
 
+	dispose(): void {
+		this.source.stop();
+		if (this.shippingLabelsTimer) clearInterval(this.shippingLabelsTimer);
+		if (this.usageTimer) clearInterval(this.usageTimer);
+		this.shippingLabelsTimer = undefined;
+		this.usageTimer = undefined;
+		this.users = 0;
+		this.listeners.clear();
+	}
+
 	private notify(): void {
 		for (const listener of this.listeners) {
 			listener(this.snapshot);

@@ -1,4 +1,5 @@
 {
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Amp Deck",
 	"Version": "0.1.0.0",
 	"Author": "Daniel Insley",
@@ -81,7 +82,7 @@
 	"CodePath": "bin/plugin.js",
 	"Description": "A physical command center for Amp Code.",
 	"Icon": "imgs/plugin/marketplace",
-	"SDKVersion": 2,
+	"SDKVersion": 3,
 	"Software": {
 		"MinimumVersion": "7.1"
 	},
@@ -96,8 +97,7 @@
 		}
 	],
 	"Nodejs": {
-		"Version": "24",
-		"Debug": "enabled"
+		"Version": "24"
 	},
 	"UUID": "com.daniel-insley.amp-deck"
 }

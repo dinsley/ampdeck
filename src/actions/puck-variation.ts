@@ -1,4 +1,4 @@
-import {
+import streamDeck, {
 	action,
 	KeyDownEvent,
 	KeyUpEvent,
@@ -96,7 +96,9 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 		if (previousTimer) clearTimeout(previousTimer);
 		const timer = setTimeout(() => {
 			this.titleTimers.delete(ev.action.id);
-			void ev.action.setTitle("");
+			void ev.action.setTitle("").catch((error) => {
+				streamDeck.logger.error(`Unable to clear Puck Variation title: ${getErrorMessage(error)}`);
+			});
 		}, 1200);
 		timer.unref();
 		this.titleTimers.set(ev.action.id, timer);
@@ -129,4 +131,8 @@ function randomPuckNumber(excluding?: number): number {
 
 function nextPuckNumber(current: number | undefined): number {
 	return current === undefined ? randomPuckNumber() : (current % puckCount) + 1;
+}
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }

@@ -1,4 +1,4 @@
-import {
+import streamDeck, {
 	action,
 	KeyDownEvent,
 	KeyUpEvent,
@@ -46,8 +46,12 @@ abstract class ThreadCommand extends SingletonAction {
 		private readonly definition: CommandDefinition,
 	) {
 		super();
-		this.store.subscribe(() => void this.renderVisibleActions());
-		this.bridge.subscribe(() => void this.renderVisibleActions());
+		this.store.subscribe(() =>
+			logBackgroundError(this.renderVisibleActions(), `render ${this.definition.label} action`),
+		);
+		this.bridge.subscribe(() =>
+			logBackgroundError(this.renderVisibleActions(), `render ${this.definition.label} action`),
+		);
 	}
 
 	override async onWillAppear(ev: WillAppearEvent): Promise<void> {
@@ -98,7 +102,7 @@ abstract class ThreadCommand extends SingletonAction {
 			threadId: thread.id,
 			selectionRevision: this.store.selectionRevision,
 			startedAt: performance.now(),
-			timer: setInterval(() => void this.render(ev.action), 100),
+			timer: setInterval(() => logBackgroundError(this.render(ev.action), `render ${this.definition.label} hold`), 100),
 		};
 		hold.timer.unref();
 		this.holds.set(ev.action.id, hold);
@@ -146,12 +150,20 @@ abstract class ThreadCommand extends SingletonAction {
 		let result: CommandFeedbackKind = "success";
 		try {
 			await this.bridge.sendCommand(threadId, this.definition.command, this.definition.content, this.definition.intent);
-		} catch {
+		} catch (error) {
+			streamDeck.logger.warn(`${this.definition.label} command failed: ${getErrorMessage(error)}`);
 			result = "error";
 		} finally {
 			this.inFlightActionIds.delete(action.id);
 			this.inFlightThreadIds.delete(threadId);
 			await this.showFeedback(action, result, appearanceGeneration);
+			if (
+				result === "error" &&
+				this.visibleActionIds.has(action.id) &&
+				this.appearanceGenerations.get(action.id) === appearanceGeneration
+			) {
+				await action.showAlert();
+			}
 		}
 	}
 
@@ -187,7 +199,9 @@ abstract class ThreadCommand extends SingletonAction {
 		const timer = setTimeout(() => {
 			this.feedbackTimers.delete(action.id);
 			this.feedback.delete(action.id);
-			if (this.visibleActionIds.has(action.id)) void this.render(action);
+			if (this.visibleActionIds.has(action.id)) {
+				logBackgroundError(this.render(action), `restore ${this.definition.label} feedback`);
+			}
 		}, 800);
 		timer.unref();
 		this.feedbackTimers.set(action.id, timer);
@@ -221,7 +235,7 @@ abstract class ThreadCommand extends SingletonAction {
 					thread.phase === "shipping" ||
 					!this.bridge.isThreadConnected(thread.id))
 			) {
-				void this.renderVisibleActions();
+				logBackgroundError(this.renderVisibleActions(), `animate ${this.definition.label} action`);
 			}
 		}, 200);
 		this.animationTimer.unref();
@@ -281,4 +295,12 @@ export class ShipThread extends ThreadCommand {
 			intent: "shipping",
 		});
 	}
+}
+
+function logBackgroundError(operation: Promise<void>, context: string): void {
+	void operation.catch((error) => streamDeck.logger.error(`Unable to ${context}: ${getErrorMessage(error)}`));
+}
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }

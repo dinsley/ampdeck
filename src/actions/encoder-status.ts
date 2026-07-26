@@ -54,7 +54,9 @@ export class EncoderStatus extends SingletonAction {
 		super();
 		this.store.subscribe((snapshot) => {
 			this.snapshot = snapshot;
-			void this.reconcileSnapshot();
+			void this.reconcileSnapshot().catch((error) => {
+				streamDeck.logger.error(`Unable to render thread status: ${getErrorMessage(error)}`);
+			});
 		});
 	}
 
@@ -64,7 +66,11 @@ export class EncoderStatus extends SingletonAction {
 		}
 
 		this.visibleActionIds.add(ev.action.id);
-		this.animationTimer ??= setInterval(() => void this.refreshRunningActions(), animationIntervalMs);
+		this.animationTimer ??= setInterval(() => {
+			void this.refreshRunningActions().catch((error) => {
+				streamDeck.logger.error(`Unable to refresh thread status: ${getErrorMessage(error)}`);
+			});
+		}, animationIntervalMs);
 		this.animationTimer.unref();
 		this.releaseStore ??= this.store.acquire();
 		this.ensureFocusedThread();
@@ -271,6 +277,10 @@ function getSemanticStatus(
 
 function wrap(value: number, length: number): number {
 	return ((value % length) + length) % length;
+}
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
 
 function isAttentionThread(thread: AmpTopThread | undefined): boolean {

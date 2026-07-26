@@ -19,3 +19,14 @@ streamDeck.actions.registerAction(new ArchiveThread(threadStore));
 streamDeck.actions.registerAction(new ReviewThread(threadStore));
 
 void streamDeck.connect();
+
+let shuttingDown = false;
+function shutdown(): void {
+	if (shuttingDown) return;
+	shuttingDown = true;
+	threadStore.dispose();
+	void bridge.close().finally(() => process.exit(0));
+}
+
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);

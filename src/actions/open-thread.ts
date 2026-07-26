@@ -20,7 +20,11 @@ export class OpenThread extends SingletonAction {
 
 	constructor(private readonly store: ThreadStore) {
 		super();
-		this.store.subscribe(() => void this.renderVisibleActions());
+		this.store.subscribe(() => {
+			void this.renderVisibleActions().catch((error) => {
+				streamDeck.logger.error(`Unable to render Open Thread action: ${getErrorMessage(error)}`);
+			});
+		});
 	}
 
 	override async onWillAppear(ev: WillAppearEvent): Promise<void> {
@@ -62,8 +66,15 @@ export class OpenThread extends SingletonAction {
 		try {
 			await streamDeck.system.openUrl(thread.url);
 			await this.showFeedback(ev.action, "success", appearanceGeneration);
-		} catch {
+		} catch (error) {
+			streamDeck.logger.warn(`Unable to open selected thread: ${getErrorMessage(error)}`);
 			await this.showFeedback(ev.action, "error", appearanceGeneration);
+			if (
+				this.visibleActionIds.has(ev.action.id) &&
+				this.appearanceGenerations.get(ev.action.id) === appearanceGeneration
+			) {
+				await ev.action.showAlert();
+			}
 		}
 	}
 
@@ -81,7 +92,11 @@ export class OpenThread extends SingletonAction {
 		const timer = setTimeout(() => {
 			this.feedbackTimers.delete(action.id);
 			this.feedback.delete(action.id);
-			if (this.visibleActionIds.has(action.id)) void this.render(action);
+			if (this.visibleActionIds.has(action.id)) {
+				void this.render(action).catch((error) => {
+					streamDeck.logger.error(`Unable to restore Open Thread action: ${getErrorMessage(error)}`);
+				});
+			}
 		}, 800);
 		timer.unref();
 		this.feedbackTimers.set(action.id, timer);
@@ -109,4 +124,8 @@ export class OpenThread extends SingletonAction {
 			}),
 		);
 	}
+}
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }

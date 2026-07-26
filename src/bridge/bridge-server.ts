@@ -104,6 +104,21 @@ export class BridgeServer {
 		return () => this.listeners.delete(listener);
 	}
 
+	close(): Promise<void> {
+		for (const commandID of [...this.pendingCommands.keys()]) {
+			this.rejectPending(commandID, new Error("Amp Deck bridge is shutting down"));
+		}
+		for (const shipping of this.shippingThreads.values()) clearTimeout(shipping.timer);
+		this.shippingThreads.clear();
+		this.listeners.clear();
+		for (const socket of this.clients.keys()) socket.terminate();
+		this.clients.clear();
+
+		return new Promise((resolve) => {
+			this.server.close(() => resolve());
+		});
+	}
+
 	sendCommand(
 		threadId: string,
 		command: ThreadCommandName,
