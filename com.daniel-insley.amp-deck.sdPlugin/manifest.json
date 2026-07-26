@@ -1,0 +1,109 @@
+{
+	"Name": "Amp Deck",
+	"Version": "0.1.0.0",
+	"Author": "Daniel Insley",
+	"Actions": [
+		{
+			"Name": "Thread Status",
+			"UUID": "com.daniel-insley.amp-deck.status",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Displays one selected Amp thread across all four Stream Deck+ encoders.",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/encoder-status.json",
+				"TriggerDescription": {
+					"Push": "Acknowledge unread status",
+					"Rotate": "Select a different Amp thread",
+					"Touch": "Keep the displayed thread selected",
+					"LongTouch": "Open visible thread"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Open Thread",
+			"UUID": "com.daniel-insley.amp-deck.open-thread",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Opens the selected Amp thread.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Puck Variation",
+			"UUID": "com.daniel-insley.amp-deck.puck-variation",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Shows a Puck variation; press for next, or hold for a random variation.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Ship Thread",
+			"UUID": "com.daniel-insley.amp-deck.ship",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Hold for two seconds to request the repository's shipping workflow.",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+		},
+		{
+			"Name": "Archive Thread",
+			"UUID": "com.daniel-insley.amp-deck.archive",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Hold for 1.5 seconds to archive the selected thread through the Amp CLI.",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+		},
+		{
+			"Name": "Review Thread",
+			"UUID": "com.daniel-insley.amp-deck.review-thread",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Hold for one second to request a review in the selected thread through the Amp CLI.",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+		}
+	],
+	"Category": "Amp Deck",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "A physical command center for Amp Code.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "com.daniel-insley.amp-deck"
+}

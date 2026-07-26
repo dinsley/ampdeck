@@ -1,0 +1,56 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "amp-deck-encoder-status",
+	"items": [
+		{
+			"key": "thread",
+			"type": "text",
+			"rect": [10, 6, 125, 22],
+			"font": { "size": 13, "weight": 600 },
+			"alignment": "left",
+			"color": "#A6ABB4",
+			"value": "AMP"
+		},
+		{
+			"key": "meta",
+			"type": "text",
+			"rect": [136, 6, 54, 22],
+			"font": { "size": 13, "weight": 600 },
+			"alignment": "right",
+			"color": "#A6ABB4",
+			"value": ""
+		},
+		{
+			"key": "activity",
+			"type": "pixmap",
+			"rect": [8, 34, 36, 36]
+		},
+		{
+			"key": "status",
+			"type": "text",
+			"rect": [48, 31, 142, 33],
+			"font": { "size": 24, "weight": 700 },
+			"alignment": "left",
+			"value": "IDLE"
+		},
+		{
+			"key": "detail",
+			"type": "text",
+			"rect": [48, 66, 142, 24],
+			"font": { "size": 14, "weight": 500 },
+			"alignment": "left",
+			"color": "#C4C8CE",
+			"value": "Connecting to amp top"
+		},
+		{
+			"key": "selection",
+			"type": "bar",
+			"rect": [8, 95, 184, 3],
+			"value": 100,
+			"subtype": 4,
+			"border_w": 0,
+			"bar_bg_c": "#242730",
+			"bar_fill_c": "#242730"
+		}
+	]
+}
