@@ -1,8 +1,11 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
+import { reachedUsageBoundary } from "../actions/encoder-status-model";
 import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
 import { BridgeServer } from "../bridge/bridge-server";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
+
+const usageRetryDelaysMs = [1_000, 5_000, 15_000];
 
 export class ThreadStore {
 	private readonly listeners = new Set<ThreadStoreListener>();
@@ -12,6 +15,7 @@ export class ThreadStore {
 	private readonly source = new AmpTopSource();
 	private readonly usageCosts = new Map<string, string>();
 	private usageInFlight = false;
+	private usageRetryTimer: NodeJS.Timeout | undefined;
 	private usageTimer: NodeJS.Timeout | undefined;
 	private topSnapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 	private users = 0;
@@ -22,10 +26,16 @@ export class ThreadStore {
 
 	constructor(private readonly bridge: BridgeServer) {
 		this.source.onSnapshot((snapshot) => {
+			const previous = this.selectedThread;
 			this.topSnapshot = snapshot;
 			this.rebuildSnapshot();
+			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
 		});
-		this.bridge.subscribe(() => this.rebuildSnapshot());
+		this.bridge.subscribe(() => {
+			const previous = this.selectedThread;
+			this.rebuildSnapshot();
+			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
+		});
 	}
 
 	get selectedThread(): AmpTopThread | undefined {
@@ -58,6 +68,7 @@ export class ThreadStore {
 				this.shippingLabelsTimer = undefined;
 				if (this.usageTimer) clearInterval(this.usageTimer);
 				this.usageTimer = undefined;
+				this.cancelUsageRetries();
 			}
 		};
 	}
@@ -69,6 +80,7 @@ export class ThreadStore {
 
 		this.selectedThreadId = threadId;
 		this.selectionRevision += 1;
+		this.cancelUsageRetries();
 		this.notify();
 		void this.refreshSelectedUsage();
 	}
@@ -87,6 +99,7 @@ export class ThreadStore {
 
 		this.selectedThreadId = undefined;
 		this.selectionRevision += 1;
+		this.cancelUsageRetries();
 		this.notify();
 	}
 
@@ -176,8 +189,32 @@ export class ThreadStore {
 			if (this.selectedThreadId && this.selectedThreadId !== threadId) void this.refreshSelectedUsage();
 		}
 	}
-}
 
+	private scheduleUsageRetries(): void {
+		const threadId = this.selectedThreadId;
+		if (!threadId || this.users === 0) return;
+
+		this.cancelUsageRetries();
+		const refresh = (index: number): void => {
+			this.usageRetryTimer = setTimeout(() => {
+				this.usageRetryTimer = undefined;
+				if (this.users === 0 || this.selectedThreadId !== threadId) return;
+				void this.refreshSelectedUsage().finally(() => {
+					if (this.users > 0 && this.selectedThreadId === threadId && index + 1 < usageRetryDelaysMs.length) {
+						refresh(index + 1);
+					}
+				});
+			}, usageRetryDelaysMs[index]);
+			this.usageRetryTimer.unref();
+		};
+		refresh(0);
+	}
+
+	private cancelUsageRetries(): void {
+		if (this.usageRetryTimer) clearTimeout(this.usageRetryTimer);
+		this.usageRetryTimer = undefined;
+	}
+}
 function setsEqual(left: Set<string>, right: Set<string>): boolean {
 	return left.size === right.size && [...left].every((value) => right.has(value));
 }

@@ -31,6 +31,14 @@ export function chooseFocusedThread(
 	);
 }
 
+export function reachedUsageBoundary(previous: AmpTopThread | undefined, current: AmpTopThread | undefined): boolean {
+	if (!previous || !current || previous.id !== current.id) return false;
+	return (
+		(previous.working && !current.working) ||
+		(previous.companionState === "running" && current.companionState !== "running")
+	);
+}
+
 export function getOverview(threads: AmpTopThread[]): Overview {
 	return {
 		alerts: threads.filter(
