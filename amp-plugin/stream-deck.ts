@@ -1,4 +1,6 @@
 import type { PluginAPI, ThreadID } from '@ampcode/plugin'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 type CompanionState = 'idle' | 'running' | 'awaiting-approval' | 'error' | 'done' | 'cancelled'
 type Phase = 'idle' | 'working' | 'thinking' | 'researching' | 'editing' | 'testing' | 'shipping' | 'error' | 'done' | 'cancelled'
@@ -159,9 +161,7 @@ export default function streamDeckCompanion(amp: PluginAPI) {
 
   async function readConfig(): Promise<BridgeConfig | undefined> {
     try {
-      const home = process.env.HOME || process.env.USERPROFILE
-      if (!home) return undefined
-      const raw: unknown = await Bun.file(`${home}/.config/amp-deck/bridge.json`).json()
+      const raw: unknown = await Bun.file(join(homedir(), '.config', 'amp-deck', 'bridge.json')).json()
       if (!isRecord(raw) || raw.version !== 2 || raw.host !== '127.0.0.1' || raw.port !== 17373 ||
           !isHex(raw.token, 64)) return undefined
       return { host: '127.0.0.1', port: 17373, token: raw.token }

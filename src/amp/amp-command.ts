@@ -1,14 +1,17 @@
 import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 const maximumOutputBytes = 64 * 1024;
 
-export function resolveAmpCommand(): string {
-	if (process.platform === "win32" && process.env.USERPROFILE) {
-		const executable = join(process.env.USERPROFILE, ".amp", "bin", "amp.exe");
-		if (existsSync(executable)) return executable;
-	}
+export function resolveAmpCommand(
+	platform: NodeJS.Platform = process.platform,
+	home: string = homedir(),
+	fileExists: (path: string) => boolean = existsSync,
+): string {
+	const executable = join(home, ".amp", "bin", platform === "win32" ? "amp.exe" : "amp");
+	if (fileExists(executable)) return executable;
 	return "amp";
 }
 

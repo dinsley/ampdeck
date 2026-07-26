@@ -1,7 +1,27 @@
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { parseThreadSearchIds, parseThreadUsageCost } from "../src/amp/amp-command.ts";
+import { parseThreadSearchIds, parseThreadUsageCost, resolveAmpCommand } from "../src/amp/amp-command.ts";
+
+describe("Amp CLI resolution", () => {
+	it("finds the default installation outside PATH on macOS and Linux", () => {
+		for (const platform of ["darwin", "linux"] as const) {
+			const expected = join("/Users/example", ".amp", "bin", "amp");
+			assert.equal(resolveAmpCommand(platform, "/Users/example", (path) => path === expected), expected);
+		}
+	});
+
+	it("uses the Windows executable name", () => {
+		const home = String.raw`C:\Users\example`;
+		const expected = join(home, ".amp", "bin", "amp.exe");
+		assert.equal(resolveAmpCommand("win32", home, (path) => path === expected), expected);
+	});
+
+	it("falls back to PATH when the default installation is absent", () => {
+		assert.equal(resolveAmpCommand("darwin", "/Users/example", () => false), "amp");
+	});
+});
 
 describe("Amp CLI output", () => {
 	it("extracts the display cost from thread usage output", () => {
