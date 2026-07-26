@@ -261,9 +261,6 @@ function renderFocusSlice(input: {
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
 	const executorGlyph = renderExecutorGlyph(input.thread.executorConnected, executorColor);
-	const usageMarkup = input.thread.usageCost
-		? `<text x="782" y="90" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="10" font-weight="700">USAGE ${escapeXml(input.thread.usageCost)}</text>`
-		: "";
 	const activityDetail = escapeXml(getActivityDetail(input.thread, input.model));
 	const titleLines = splitTitle(input.thread.title);
 	const titleFontSize =
@@ -298,12 +295,11 @@ function renderFocusSlice(input: {
 		<text x="40" y="84" fill="${executorTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${executorLabel}</text>
 		<text x="582" y="84" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED ${updated}</text>
 		<line x1="600" y1="0" x2="600" y2="100" stroke="${borderColor}" stroke-width="2"/>
-		<text x="620" y="18" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">CURRENTLY</text>
+		<text x="620" y="18" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">STATUS</text>
 		<text x="782" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">${phaseDuration}</text>
 		${activity}
 		<text x="638" y="56" fill="${statusColor}" font-family="Segoe UI, sans-serif" font-size="${input.model.status.length > 10 ? 16 : 20}" font-weight="700">${status}</text>
-		<text x="620" y="74" fill="${strongTextColor}" font-family="Segoe UI, sans-serif" font-size="10">${truncate(activityDetail, 27)}</text>
-		${usageMarkup}
+		<text x="620" y="82" fill="${strongTextColor}" font-family="Segoe UI, sans-serif" font-size="11">${truncate(activityDetail, 30)}</text>
 	</svg>`;
 	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
