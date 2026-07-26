@@ -28,10 +28,6 @@ export default tseslint.config(
 			},
 		},
 	})),
-	...tseslint.configs.recommended.map((config) => ({
-		...config,
-		files: ["amp-plugin/**/*.ts"],
-	})),
 	{
 		files: ["test/**/*.ts"],
 		rules: {

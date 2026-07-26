@@ -9,14 +9,6 @@ describe("thread usage refresh boundaries", () => {
 		assert.equal(reachedUsageBoundary(thread({ working: true }), thread({ working: false })), true);
 	});
 
-	it("detects completion and pauses reported by the companion", () => {
-		assert.equal(reachedUsageBoundary(thread({ companionState: "running" }), thread({ companionState: "done" })), true);
-		assert.equal(
-			reachedUsageBoundary(thread({ companionState: "running" }), thread({ companionState: "awaiting-approval" })),
-			true,
-		);
-	});
-
 	it("does not refresh for ordinary updates, startup, or a different thread", () => {
 		assert.equal(reachedUsageBoundary(thread(), thread()), false);
 		assert.equal(reachedUsageBoundary(undefined, thread()), false);

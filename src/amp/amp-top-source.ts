@@ -12,17 +12,12 @@ export type AmpTopThread = {
 	updatedAt?: string;
 	working: boolean;
 	executorConnected: boolean;
-	companionConnected?: boolean;
-	companionState?: "idle" | "running" | "awaiting-approval" | "error" | "done" | "cancelled";
 	phase?: string;
-	executorKind?: "local" | "remote" | "unknown";
-	unread?: boolean;
 	usageCost?: string;
 };
 
 export type AmpTopSnapshot = {
 	connection: "connecting" | "live" | "offline";
-	companionConnected?: boolean;
 	threads: AmpTopThread[];
 };
 

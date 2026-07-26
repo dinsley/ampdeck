@@ -13,7 +13,7 @@
 			"Encoder": {
 				"layout": "layouts/encoder-status.json",
 				"TriggerDescription": {
-					"Push": "Acknowledge unread status",
+					"Push": "Select the visible thread",
 					"Rotate": "Select a different Amp thread",
 					"Touch": "Keep the displayed thread selected",
 					"LongTouch": "Open visible thread"

@@ -1,7 +1,6 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
 import { reachedUsageBoundary } from "../actions/encoder-status-model";
 import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
-import { BridgeServer } from "../bridge/bridge-server";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 
@@ -24,15 +23,10 @@ export class ThreadStore {
 	selectedThreadId: string | undefined;
 	snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 
-	constructor(private readonly bridge: BridgeServer) {
+	constructor() {
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
 			this.topSnapshot = snapshot;
-			this.rebuildSnapshot();
-			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
-		});
-		this.bridge.subscribe(() => {
-			const previous = this.selectedThread;
 			this.rebuildSnapshot();
 			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
 		});
@@ -85,13 +79,6 @@ export class ThreadStore {
 		void this.refreshSelectedUsage();
 	}
 
-	async acknowledgeSelectedThread(): Promise<void> {
-		const thread = this.selectedThread;
-		if (thread?.unread) {
-			await this.bridge.sendCommand(thread.id, "acknowledge");
-		}
-	}
-
 	clearSelection(threadId: string): void {
 		if (this.selectedThreadId !== threadId) {
 			return;
@@ -115,6 +102,7 @@ export class ThreadStore {
 		if (this.usageTimer) clearInterval(this.usageTimer);
 		this.shippingLabelsTimer = undefined;
 		this.usageTimer = undefined;
+		this.cancelUsageRetries();
 		this.users = 0;
 		this.listeners.clear();
 	}
@@ -132,25 +120,11 @@ export class ThreadStore {
 		}
 		this.snapshot = {
 			...this.topSnapshot,
-			companionConnected: this.bridge.hasCompanion(),
-			threads: this.topSnapshot.threads.map((thread) => {
-				const status = this.bridge.getStatus(thread.id);
-				const shipping =
-					this.bridge.observeShipping(thread.id, thread.working) || this.shippingThreadIds.has(thread.id);
-				return {
-					...thread,
-					usageCost: this.usageCosts.get(thread.id),
-					executorKind: status?.executorKind ?? "unknown",
-					companionConnected: this.bridge.isThreadConnected(thread.id),
-					...(status || shipping
-						? {
-								companionState: shipping ? ("running" as const) : status?.state,
-								phase: shipping ? "shipping" : status?.phase,
-								unread: status?.unread,
-							}
-						: {}),
-				};
-			}),
+			threads: this.topSnapshot.threads.map((thread) => ({
+				...thread,
+				usageCost: this.usageCosts.get(thread.id),
+				phase: this.shippingThreadIds.has(thread.id) ? "shipping" : undefined,
+			})),
 		};
 		this.notify();
 	}
@@ -225,6 +199,7 @@ export class ThreadStore {
 		this.usageRetryTimer = undefined;
 	}
 }
+
 function setsEqual(left: Set<string>, right: Set<string>): boolean {
 	return left.size === right.size && [...left].every((value) => right.has(value));
 }

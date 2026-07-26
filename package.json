@@ -23,7 +23,6 @@
 		"@rollup/plugin-typescript": "^12.1.0",
 		"@tsconfig/node24": "^24.0.4",
 		"@types/node": "~24.0.0",
-		"@types/ws": "^8.18.1",
 		"eslint": "^9.39.5",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^17.8.0",
@@ -34,7 +33,6 @@
 		"typescript-eslint": "^8.65.0"
 	},
 	"dependencies": {
-		"@elgato/streamdeck": "^2.1.0",
-		"ws": "^8.21.1"
+		"@elgato/streamdeck": "^2.1.0"
 	}
 }

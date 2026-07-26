@@ -14,10 +14,11 @@ import { ThreadStore } from "../state/thread-store";
 type CliCommandDefinition = {
 	label: string;
 	color: string;
-	icon: "archive" | "review";
+	icon: "archive" | "review" | "ship";
 	holdMs: number;
 	cooldownMs?: number;
 	successFeedback?: CommandFeedbackKind;
+	unavailableWhileShipping?: boolean;
 	execute: (threadId: string) => Promise<unknown>;
 };
 
@@ -158,10 +159,11 @@ abstract class CliThreadCommand extends SingletonAction {
 
 	private isTargetReady(threadId: string, selectionRevision: number): boolean {
 		const thread = this.store.snapshot.threads.find((candidate) => candidate.id === threadId);
+		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
 		return (
 			this.store.selectedThreadId === threadId &&
 			this.store.selectionRevision === selectionRevision &&
-			Boolean(thread && !thread.working && this.store.snapshot.connection === "live")
+			Boolean(thread && !thread.working && !unavailable && this.store.snapshot.connection === "live")
 		);
 	}
 
@@ -231,9 +233,11 @@ abstract class CliThreadCommand extends SingletonAction {
 		const thread = this.store.selectedThread;
 		const inFlight = this.inFlightActionIds.has(action.id);
 		const coolingDown = Boolean(thread && (this.cooldownUntil.get(thread.id) ?? 0) > performance.now());
+		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
 		const available = Boolean(
 			thread &&
 			!thread.working &&
+			!unavailable &&
 			this.store.snapshot.connection === "live" &&
 			!inFlight &&
 			!this.inFlightThreadIds.has(thread.id) &&
@@ -241,7 +245,17 @@ abstract class CliThreadCommand extends SingletonAction {
 		);
 		const hold = this.holds.get(action.id);
 		const progress = hold ? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs) : 0;
-		const footer = thread?.working ? "" : inFlight ? "BUSY" : coolingDown ? "SENT" : available ? "" : "UNAVAILABLE";
+		const footer = unavailable
+			? "SHIPPING"
+			: thread?.working
+				? ""
+				: inFlight
+					? "BUSY"
+					: coolingDown
+						? "SENT"
+						: available
+							? ""
+							: "UNAVAILABLE";
 
 		return action.setImage(
 			renderCommandKey({
@@ -260,6 +274,8 @@ abstract class CliThreadCommand extends SingletonAction {
 
 const reviewPrompt =
 	"Review the current changes for correctness and regressions. Prioritize substantive findings, fix high-confidence issues, and report remaining risks.";
+const shipPrompt =
+	"Prepare and carry out the repository's configured shipping workflow for the current changes. Before changing shared state, inspect project guidance and current git state, verify relevant checks, and clearly report the intended destination. Do not force-push, rewrite history, bypass approvals, or guess when the destination or workflow is ambiguous; stop and ask instead.";
 
 @action({ UUID: "com.daniel-insley.amp-deck.archive" })
 export class ArchiveThread extends CliThreadCommand {
@@ -286,6 +302,32 @@ export class ReviewThread extends CliThreadCommand {
 			successFeedback: "sent",
 			execute: (threadId) =>
 				launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId]),
+		});
+	}
+}
+
+@action({ UUID: "com.daniel-insley.amp-deck.ship" })
+export class ShipThread extends CliThreadCommand {
+	constructor(store: ThreadStore) {
+		super(store, {
+			label: "SHIP",
+			color: "#F34E3F",
+			icon: "ship",
+			holdMs: 2000,
+			successFeedback: "sent",
+			unavailableWhileShipping: true,
+			cooldownMs: 10_000,
+			execute: (threadId) =>
+				launchAmpCommand([
+					"--no-color",
+					"--label",
+					"shipping",
+					"--execute",
+					shipPrompt,
+					"threads",
+					"continue",
+					threadId,
+				]),
 		});
 	}
 }

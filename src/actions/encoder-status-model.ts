@@ -5,17 +5,10 @@ export type PhaseMetadata = {
 	startedAt: number;
 };
 
-export type Overview = {
-	alerts: number;
-	unread: number;
-};
-
-export function orderThreadsByAttention(threads: AmpTopThread[], now = Date.now()): AmpTopThread[] {
+export function orderThreadsByAttention(threads: AmpTopThread[]): AmpTopThread[] {
 	return threads
 		.map((thread, index) => ({ thread, index }))
-		.sort(
-			(left, right) => attentionRank(left.thread, now) - attentionRank(right.thread, now) || left.index - right.index,
-		)
+		.sort((left, right) => attentionRank(left.thread) - attentionRank(right.thread) || left.index - right.index)
 		.map(({ thread }) => thread);
 }
 
@@ -33,21 +26,8 @@ export function chooseFocusedThread(
 
 export function reachedUsageBoundary(previous: AmpTopThread | undefined, current: AmpTopThread | undefined): boolean {
 	if (!previous || !current || previous.id !== current.id) return false;
-	return (
-		(previous.working && !current.working) ||
-		(previous.companionState === "running" && current.companionState !== "running")
-	);
+	return previous.working && !current.working;
 }
-
-export function getOverview(threads: AmpTopThread[]): Overview {
-	return {
-		alerts: threads.filter(
-			(thread) => thread.companionState === "awaiting-approval" || thread.companionState === "error",
-		).length,
-		unread: threads.filter((thread) => thread.unread).length,
-	};
-}
-
 export function updatePhaseMetadata(
 	metadata: Map<string, PhaseMetadata>,
 	statuses: Array<{ id: string; status: string }>,
@@ -80,20 +60,10 @@ export function splitTitle(title: string): string[] {
 	return [first, second];
 }
 
-function attentionRank(thread: AmpTopThread, now: number): number {
-	if (thread.companionState === "awaiting-approval") return 0;
-	if (thread.companionState === "error") return 1;
-	if (thread.unread) return 2;
-	if (thread.phase === "shipping") return 3;
-	if (thread.working || thread.companionState === "running") return 4;
-	if (thread.companionState === "done" && isRecentlyUpdated(thread.updatedAt, now)) return 5;
-	return 6;
-}
-
-function isRecentlyUpdated(updatedAt: string | undefined, now: number): boolean {
-	if (!updatedAt) return false;
-	const elapsed = now - Date.parse(updatedAt);
-	return Number.isFinite(elapsed) && elapsed >= 0 && elapsed < 15 * 60 * 1000;
+function attentionRank(thread: AmpTopThread): number {
+	if (thread.phase === "shipping") return 0;
+	if (thread.working) return 1;
+	return 2;
 }
 
 function truncate(value: string, length: number): string {

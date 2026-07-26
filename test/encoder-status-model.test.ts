@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import type { AmpTopThread } from "../src/amp/amp-top-source.ts";
 import {
 	chooseFocusedThread,
-	getOverview,
 	orderThreadsByAttention,
 	splitTitle,
 	updatePhaseMetadata,
@@ -18,36 +17,22 @@ describe("encoder status model", () => {
 		const threads = [
 			thread("idle-a"),
 			thread("running-a", { working: true }),
-			thread("error", { companionState: "error" }),
-			thread("input", { companionState: "awaiting-approval" }),
-			thread("unread-a", { unread: true }),
-			thread("shipping", { companionState: "running", phase: "shipping" }),
-			thread("running-b", { companionState: "running" }),
-			thread("unread-b", { unread: true }),
+			thread("idle-b"),
+			thread("shipping", { phase: "shipping" }),
+			thread("running-b", { working: true }),
 		];
 
 		assert.deepEqual(
-			orderThreadsByAttention(threads, now).map(({ id }) => id),
-			["input", "error", "unread-a", "unread-b", "shipping", "running-a", "running-b", "idle-a"],
+			orderThreadsByAttention(threads).map(({ id }) => id),
+			["shipping", "running-a", "running-b", "idle-a", "idle-b"],
 		);
 	});
 
 	it("keeps a valid current focus and falls back to the highest-priority thread", () => {
-		const threads = [thread("idle"), thread("error", { companionState: "error" })];
+		const threads = [thread("idle"), thread("shipping", { phase: "shipping" })];
 		assert.equal(chooseFocusedThread(threads, undefined, "idle")?.id, "idle");
-		assert.equal(chooseFocusedThread(threads, undefined, "archived")?.id, "error");
-		assert.equal(chooseFocusedThread(threads, "error", "idle")?.id, "error");
-	});
-
-	it("calculates attention counts without counting unread as an alert", () => {
-		assert.deepEqual(
-			getOverview([
-				thread("working", { working: true }),
-				thread("input", { companionState: "awaiting-approval", unread: true }),
-				thread("error", { companionState: "error" }),
-			]),
-			{ alerts: 2, unread: 1 },
-		);
+		assert.equal(chooseFocusedThread(threads, undefined, "archived")?.id, "shipping");
+		assert.equal(chooseFocusedThread(threads, "shipping", "idle")?.id, "shipping");
 	});
 
 	it("tracks the current phase, resets duration, and prunes removed threads", () => {
