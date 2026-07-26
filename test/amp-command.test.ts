@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { parseThreadUsageCost } from "../src/amp/amp-command.ts";
+import { parseThreadSearchIds, parseThreadUsageCost } from "../src/amp/amp-command.ts";
 
 describe("Amp CLI output", () => {
 	it("extracts the display cost from thread usage output", () => {
@@ -11,5 +11,10 @@ describe("Amp CLI output", () => {
 
 	it("ignores output without a display cost", () => {
 		assert.equal(parseThreadUsageCost("Thread usage is unavailable\n"), undefined);
+	});
+
+	it("extracts thread IDs from JSON search results", () => {
+		assert.deepEqual(parseThreadSearchIds('[{"id":"T-one"},{"id":"T-two"},{"title":"missing"}]'), new Set(["T-one", "T-two"]));
+		assert.deepEqual(parseThreadSearchIds("not json"), new Set());
 	});
 });

@@ -53,6 +53,19 @@ export function parseThreadUsageCost(output: string): string | undefined {
 		?.slice(0, 20);
 }
 
+export function parseThreadSearchIds(output: string): Set<string> {
+	try {
+		const value: unknown = JSON.parse(output);
+		if (!Array.isArray(value)) return new Set();
+		return new Set(value.flatMap((thread) => {
+			if (typeof thread !== "object" || thread === null || !("id" in thread) || typeof thread.id !== "string") return [];
+			return [thread.id];
+		}));
+	} catch {
+		return new Set();
+	}
+}
+
 function ampEnvironment(): NodeJS.ProcessEnv {
 	return { ...process.env, AMP_DECK_DISABLE_COMPANION: "1", NO_COLOR: "1" };
 }

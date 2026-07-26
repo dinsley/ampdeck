@@ -219,6 +219,9 @@ type DisplayModel = {
 };
 
 function getDisplayModel(thread: AmpTopThread): DisplayModel {
+	if (thread.phase === "shipping") {
+		return { status: "SHIPPING", visualStatus: "shipping" };
+	}
 	if (thread.companionConnected && thread.companionState && thread.phase) {
 		const semantic = getSemanticStatus(thread.companionState, thread.phase);
 		return {

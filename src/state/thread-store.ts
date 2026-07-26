@@ -1,11 +1,14 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
-import { parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
 import { BridgeServer } from "../bridge/bridge-server";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 
 export class ThreadStore {
 	private readonly listeners = new Set<ThreadStoreListener>();
+	private shippingLabelsInFlight = false;
+	private shippingLabelsTimer: NodeJS.Timeout | undefined;
+	private shippingThreadIds = new Set<string>();
 	private readonly source = new AmpTopSource();
 	private readonly usageCosts = new Map<string, string>();
 	private usageInFlight = false;
@@ -33,8 +36,11 @@ export class ThreadStore {
 		this.users += 1;
 		if (this.users === 1) {
 			this.source.start();
+			this.shippingLabelsTimer = setInterval(() => void this.refreshShippingLabels(), 5_000);
+			this.shippingLabelsTimer.unref();
 			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
 			this.usageTimer.unref();
+			void this.refreshShippingLabels();
 			void this.refreshSelectedUsage();
 		}
 
@@ -48,6 +54,8 @@ export class ThreadStore {
 			this.users -= 1;
 			if (this.users === 0) {
 				this.source.stop();
+				if (this.shippingLabelsTimer) clearInterval(this.shippingLabelsTimer);
+				this.shippingLabelsTimer = undefined;
 				if (this.usageTimer) clearInterval(this.usageTimer);
 				this.usageTimer = undefined;
 			}
@@ -104,7 +112,8 @@ export class ThreadStore {
 			companionConnected: this.bridge.hasCompanion(),
 			threads: this.topSnapshot.threads.map((thread) => {
 				const status = this.bridge.getStatus(thread.id);
-				const shipping = this.bridge.observeShipping(thread.id, thread.working);
+				const shipping = this.bridge.observeShipping(thread.id, thread.working)
+					|| this.shippingThreadIds.has(thread.id);
 				return {
 					...thread,
 					usageCost: this.usageCosts.get(thread.id),
@@ -119,6 +128,25 @@ export class ThreadStore {
 			}),
 		};
 		this.notify();
+	}
+
+	private async refreshShippingLabels(): Promise<void> {
+		if (this.shippingLabelsInFlight) return;
+		this.shippingLabelsInFlight = true;
+		try {
+			const output = await runAmpCommand([
+				"--no-color", "threads", "search", "label:shipping", "--limit", "100", "--json",
+			]);
+			const threadIds = parseThreadSearchIds(output);
+			if (!setsEqual(threadIds, this.shippingThreadIds)) {
+				this.shippingThreadIds = threadIds;
+				this.rebuildSnapshot();
+			}
+		} catch {
+			// Preserve the last known labels when Amp search is temporarily unavailable.
+		} finally {
+			this.shippingLabelsInFlight = false;
+		}
 	}
 
 	private async refreshSelectedUsage(): Promise<void> {
@@ -140,4 +168,8 @@ export class ThreadStore {
 			if (this.selectedThreadId && this.selectedThreadId !== threadId) void this.refreshSelectedUsage();
 		}
 	}
+}
+
+function setsEqual(left: Set<string>, right: Set<string>): boolean {
+	return left.size === right.size && [...left].every((value) => right.has(value));
 }

@@ -248,6 +248,9 @@ export default function streamDeckCompanion(amp: PluginAPI) {
             await thread.appendUserMessage(
               { type: 'user-message', content: command.content! },
             )
+            if (command.intent === 'shipping') {
+              await amp.$`amp threads label ${command.threadID} shipping`
+            }
           }
         } catch {
           error = 'command_failed'
