@@ -199,7 +199,6 @@ export class EncoderStatus extends SingletonAction {
 				position: threadIndex >= 0 ? `${threadIndex + 1}/${orderedThreads.length}` : "",
 				phase,
 				summary: getOverview(this.snapshot.threads),
-				companionConnected: thread.companionConnected === true,
 			}),
 		});
 	}
@@ -275,7 +274,6 @@ function renderFocusSlice(input: {
 	position: string;
 	phase?: PhaseMetadata;
 	summary: Overview;
-	companionConnected: boolean;
 }): string {
 	const project = escapeXml((input.thread.project ?? "Amp thread").toUpperCase());
 	const position = escapeXml(input.position);
@@ -288,14 +286,15 @@ function renderFocusSlice(input: {
 	const executorLabel = getExecutorLabel(input.thread);
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
-	const executorGlyph = renderExecutorGlyph(input.thread.executorKind, executorColor);
+	const executorKind = input.thread.executorKind === "local"
+		? "local"
+		: input.thread.executorConnected ? "remote" : input.thread.executorKind;
+	const executorGlyph = renderExecutorGlyph(executorKind, executorColor);
 	const usageMarkup = input.thread.usageCost
 		? `<text x="360" y="82" text-anchor="middle" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">USAGE ${escapeXml(input.thread.usageCost)}</text>`
 		: "";
 	const activityDetail = escapeXml(getActivityDetail(input.thread, input.model));
-	const overviewMarkup = input.companionConnected
-		? renderOverview(input.summary)
-		: `<circle cx="294" cy="14" r="3" fill="${statusColors.running}"/><text x="303" y="18" fill="${statusColors.running}" font-family="Segoe UI, sans-serif" font-size="10" font-weight="700">COMMANDS OFFLINE</text>`;
+	const overviewMarkup = renderOverview(input.summary);
 	const titleLines = splitTitle(input.thread.title);
 	const titleFontSize = titleLines.length === 1
 		? Math.max(18, Math.min(25, Math.floor(850 / Math.max(titleLines[0].length, 1))))
@@ -431,7 +430,7 @@ function getActivityDetail(thread: AmpTopThread, model: DisplayModel): string {
 function getExecutorLabel(thread: AmpTopThread): string {
 	if (thread.executorKind === "local") return "LOCAL";
 	if (thread.executorKind === "remote") return "ORB";
-	return thread.executorConnected ? "ACTIVE EXECUTOR" : "NO ACTIVE EXECUTOR";
+	return thread.executorConnected ? "ORB" : "NO ACTIVE EXECUTOR";
 }
 
 function renderExecutorGlyph(kind: AmpTopThread["executorKind"], color: string): string {
