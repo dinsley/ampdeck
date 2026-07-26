@@ -257,6 +257,8 @@ function renderFocusSlice(input: {
 	const statusColor = statusColors[input.model.visualStatus];
 	const accentColor = statusColor;
 	const updated = escapeXml(formatRelativeUpdate(input.thread.updatedAt));
+	const usage = escapeXml(input.thread.usageCost ?? "—");
+	const usageMarkup = `<tspan fill="${mutedTextColor}"> • COST </tspan><tspan fill="${strongTextColor}" font-weight="700">${usage}</tspan>`;
 	const executorLabel = getExecutorLabel(input.thread);
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
@@ -293,7 +295,7 @@ function renderFocusSlice(input: {
 		${titleMarkup}
 		${executorGlyph}
 		<text x="40" y="84" fill="${executorTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${executorLabel}</text>
-		<text x="582" y="84" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED ${updated}</text>
+		<text x="582" y="84" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED <tspan fill="${strongTextColor}" font-weight="700">${updated}</tspan>${usageMarkup}</text>
 		<line x1="600" y1="0" x2="600" y2="100" stroke="${borderColor}" stroke-width="2"/>
 		<text x="620" y="18" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">STATUS</text>
 		<text x="782" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">${phaseDuration}</text>
