@@ -262,7 +262,7 @@ function renderFocusSlice(input: {
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
 	const executorGlyph = renderExecutorGlyph(input.thread.executorConnected, executorColor);
 	const usageMarkup = input.thread.usageCost
-		? `<text x="360" y="82" text-anchor="middle" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">USAGE ${escapeXml(input.thread.usageCost)}</text>`
+		? `<text x="782" y="90" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="10" font-weight="700">USAGE ${escapeXml(input.thread.usageCost)}</text>`
 		: "";
 	const activityDetail = escapeXml(getActivityDetail(input.thread, input.model));
 	const titleLines = splitTitle(input.thread.title);
@@ -286,24 +286,24 @@ function renderFocusSlice(input: {
 		<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
 		<rect width="800" height="100" fill="${surfaceColor}"/>
 		<rect x="600" y="0" width="200" height="100" fill="${accentColor}" opacity=".035"/>
-		<g transform="translate(18 3) scale(.625)" fill="none" stroke="#595959" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<g transform="translate(18 6) scale(.625)" fill="none" stroke="#595959" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M18 19a5 5 0 0 1-5-5v8"/>
 			<path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5"/>
 			<circle cx="13" cy="12" r="2"/><circle cx="20" cy="19" r="2"/>
 		</g>
-		<text x="38" y="18" fill="#595959" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${project}</text>
-		<text x="580" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">${position}</text>
+		<text x="40" y="18" fill="#595959" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${project}</text>
+		<text x="582" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">${position}</text>
 		${titleMarkup}
 		${executorGlyph}
-		<text x="38" y="82" fill="${executorTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${executorLabel}</text>
-		${usageMarkup}
-		<text x="580" y="82" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED ${updated}</text>
+		<text x="40" y="84" fill="${executorTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">${executorLabel}</text>
+		<text x="582" y="84" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600">LAST UPDATED ${updated}</text>
 		<line x1="600" y1="0" x2="600" y2="100" stroke="${borderColor}" stroke-width="2"/>
 		<text x="620" y="18" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">CURRENTLY</text>
 		<text x="782" y="18" text-anchor="end" fill="${mutedTextColor}" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700">${phaseDuration}</text>
 		${activity}
 		<text x="638" y="56" fill="${statusColor}" font-family="Segoe UI, sans-serif" font-size="${input.model.status.length > 10 ? 16 : 20}" font-weight="700">${status}</text>
-		<text x="620" y="82" fill="${strongTextColor}" font-family="Segoe UI, sans-serif" font-size="11">${truncate(activityDetail, 30)}</text>
+		<text x="620" y="74" fill="${strongTextColor}" font-family="Segoe UI, sans-serif" font-size="10">${truncate(activityDetail, 27)}</text>
+		${usageMarkup}
 	</svg>`;
 	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
@@ -379,10 +379,10 @@ function getExecutorLabel(thread: AmpTopThread): string {
 
 function renderExecutorGlyph(connected: boolean, color: string): string {
 	if (connected) {
-		return `<g transform="translate(18 69) scale(.5833)" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		return `<g transform="translate(18 72) scale(.625)" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<circle cx="12" cy="12" r="10"/>
 			<path d="M17 12c0-2.761-2.239-5-5-5"/>
 		</g>`;
 	}
-	return `<circle cx="25" cy="76" r="3" fill="${color}"/>`;
+	return `<circle cx="25.5" cy="79.5" r="3" fill="${color}"/>`;
 }
