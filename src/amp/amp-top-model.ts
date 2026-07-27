@@ -6,9 +6,13 @@ export type AmpTopThread = {
 	updatedAt?: string;
 	working: boolean;
 	executorConnected: boolean;
+	executionOrigin?: ExecutionOrigin;
 	phase?: string;
 	usageCost?: string;
+	tokensUsed?: number;
 };
+
+export type ExecutionOrigin = "cli" | "orb" | "virtual" | "unknown";
 
 export type AmpTopSnapshot = {
 	connection: "connecting" | "live" | "offline";

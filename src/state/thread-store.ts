@@ -1,7 +1,8 @@
 import streamDeck from "@elgato/streamdeck";
 
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
-import { parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { parseThreadExportDetails, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import type { ExecutionOrigin } from "../amp/amp-top-model";
 import { parseThreadMetadataList, type AmpThreadMetadata } from "../amp/amp-threads-model";
 import { getErrorMessage } from "../error-message";
 import { reachedUsageBoundary } from "../model/thread-status";
@@ -10,7 +11,10 @@ import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 
-const usageRetryDelaysMs = [1_000, 5_000, 15_000];
+const defaultDetailRetryDelaysMs = [30_000, 60_000];
+const defaultDetailMinimumIntervalMs = 30_000;
+const defaultWorkingDetailFallbackMs = 5 * 60_000;
+const detailCommandTimeoutMs = 15_000;
 const reconciliationIntervalMs = 60_000;
 const reconciliationTimeoutMs = 5_000;
 const reconciliationLimit = 100;
@@ -26,11 +30,23 @@ type ThreadStoreOptions = {
 	runCommand?: typeof runAmpCommand;
 	shippingPersistence?: ShippingStatePersistence;
 	shippingStartTimeoutMs?: number;
+	detailMinimumIntervalMs?: number;
+	detailRetryDelaysMs?: number[];
+	workingDetailFallbackMs?: number;
 };
 
 export class ThreadStore {
 	private readonly actionCooldownTimers = new Map<string, NodeJS.Timeout>();
 	private readonly actionGate = new ThreadActionGate();
+	private detailInFlight = false;
+	private readonly detailMinimumIntervalMs: number;
+	private detailRefreshQueued = false;
+	private readonly detailRetryDelaysMs: number[];
+	private detailRetryTimer: NodeJS.Timeout | undefined;
+	private detailUsers = 0;
+	private detailWorkingTimer: NodeJS.Timeout | undefined;
+	private readonly detailUpdatedAt = new Map<string, number>();
+	private readonly executionOrigins = new Map<string, ExecutionOrigin>();
 	private readonly listeners = new Set<ThreadStoreListener>();
 	private reconciliationInFlight = false;
 	private reconciliationInventoryComplete = false;
@@ -44,12 +60,11 @@ export class ThreadStore {
 	private readonly shippingPersistence: ShippingStatePersistence | undefined;
 	private readonly source: TopSource;
 	private readonly runCommand: typeof runAmpCommand;
+	private readonly tokensUsed = new Map<string, number>();
 	private readonly usageCosts = new Map<string, string>();
-	private usageInFlight = false;
-	private usageRetryTimer: NodeJS.Timeout | undefined;
-	private usageTimer: NodeJS.Timeout | undefined;
 	private topSnapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 	private users = 0;
+	private readonly workingDetailFallbackMs: number;
 
 	selectionRevision = 0;
 	selectedThreadId: string | undefined;
@@ -58,6 +73,9 @@ export class ThreadStore {
 	constructor(options: ThreadStoreOptions = {}) {
 		this.source = options.source ?? new AmpTopSource();
 		this.runCommand = options.runCommand ?? runAmpCommand;
+		this.detailMinimumIntervalMs = options.detailMinimumIntervalMs ?? defaultDetailMinimumIntervalMs;
+		this.detailRetryDelaysMs = options.detailRetryDelaysMs ?? defaultDetailRetryDelaysMs;
+		this.workingDetailFallbackMs = options.workingDetailFallbackMs ?? defaultWorkingDetailFallbackMs;
 		this.shippingPersistence = options.shippingPersistence;
 		this.shippingLifecycle = new ShippingLifecycle(options.shippingStartTimeoutMs);
 		this.source.onSnapshot((snapshot) => {
@@ -70,11 +88,12 @@ export class ThreadStore {
 			}
 			this.scheduleShippingExpiry();
 			this.rebuildSnapshot();
-			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
+			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleDetailRetries();
 			if (connectionBecameLive && this.users > 0) {
 				void this.restoreShippingState();
 				void this.refreshThreadMetadata();
 			}
+			if (connectionBecameLive && this.detailUsers > 0) this.requestSelectedDetails();
 		});
 	}
 
@@ -125,14 +144,11 @@ export class ThreadStore {
 		if (this.users === 1) {
 			logger.info("Activating thread monitoring");
 			this.source.start();
-			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
-			this.usageTimer.unref();
 			this.reconciliationTimer = setInterval(() => void this.refreshThreadMetadata(), reconciliationIntervalMs);
 			this.reconciliationTimer.unref();
 			void this.restoreShippingState();
 			this.scheduleShippingExpiry();
 			void this.refreshThreadMetadata();
-			void this.refreshSelectedUsage();
 		}
 
 		let released = false;
@@ -148,12 +164,22 @@ export class ThreadStore {
 				this.source.stop();
 				if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
 				this.shippingExpiryTimer = undefined;
-				if (this.usageTimer) clearInterval(this.usageTimer);
-				this.usageTimer = undefined;
 				if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
 				this.reconciliationTimer = undefined;
-				this.cancelUsageRetries();
 			}
+		};
+	}
+
+	acquireStatusDetails(): () => void {
+		this.detailUsers += 1;
+		if (this.detailUsers === 1) this.requestSelectedDetails();
+
+		let released = false;
+		return () => {
+			if (released) return;
+			released = true;
+			this.detailUsers -= 1;
+			if (this.detailUsers === 0) this.cancelDetailTimers();
 		};
 	}
 
@@ -165,9 +191,9 @@ export class ThreadStore {
 		this.selectedThreadId = threadId;
 		this.selectionRevision += 1;
 		logger.debug("Selected thread changed");
-		this.cancelUsageRetries();
+		this.cancelDetailTimers();
 		this.notify();
-		if (this.users > 0) void this.refreshSelectedUsage();
+		this.requestSelectedDetails();
 	}
 
 	clearSelection(threadId: string): void {
@@ -177,7 +203,7 @@ export class ThreadStore {
 
 		this.selectedThreadId = undefined;
 		this.selectionRevision += 1;
-		this.cancelUsageRetries();
+		this.cancelDetailTimers();
 		this.notify();
 	}
 
@@ -191,15 +217,14 @@ export class ThreadStore {
 		logger.debug("Disposing thread store");
 		this.source.stop();
 		if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
-		if (this.usageTimer) clearInterval(this.usageTimer);
 		if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
 		this.shippingExpiryTimer = undefined;
-		this.usageTimer = undefined;
 		this.reconciliationTimer = undefined;
-		this.cancelUsageRetries();
+		this.cancelDetailTimers();
 		for (const timer of this.actionCooldownTimers.values()) clearTimeout(timer);
 		this.actionCooldownTimers.clear();
 		this.actionGate.clear();
+		this.detailUsers = 0;
 		this.users = 0;
 		this.listeners.clear();
 	}
@@ -218,10 +243,19 @@ export class ThreadStore {
 		for (const threadId of this.usageCosts.keys()) {
 			if (!visibleThreadIds.has(threadId)) this.usageCosts.delete(threadId);
 		}
+		for (const threadId of this.tokensUsed.keys()) {
+			if (!visibleThreadIds.has(threadId)) this.tokensUsed.delete(threadId);
+		}
+		for (const threadId of this.detailUpdatedAt.keys()) {
+			if (!visibleThreadIds.has(threadId)) this.detailUpdatedAt.delete(threadId);
+		}
+		for (const threadId of this.executionOrigins.keys()) {
+			if (!visibleThreadIds.has(threadId)) this.executionOrigins.delete(threadId);
+		}
 		if (this.selectedThreadId && !visibleThreadIds.has(this.selectedThreadId)) {
 			this.selectedThreadId = undefined;
 			this.selectionRevision += 1;
-			this.cancelUsageRetries();
+			this.cancelDetailTimers();
 		}
 		this.snapshot = {
 			...this.topSnapshot,
@@ -232,7 +266,9 @@ export class ThreadStore {
 					title: thread.title === thread.id ? (metadata?.title ?? thread.title) : thread.title,
 					project: thread.project ?? metadata?.project,
 					updatedAt: thread.updatedAt ?? metadata?.updatedAt,
+					executionOrigin: thread.executionOrigin ?? this.executionOrigins.get(thread.id),
 					usageCost: this.usageCosts.get(thread.id),
+					tokensUsed: this.tokensUsed.get(thread.id),
 					phase: this.shippingLifecycle.isShipping(thread) ? "shipping" : undefined,
 				};
 			}),
@@ -279,52 +315,94 @@ export class ThreadStore {
 		return false;
 	}
 
-	private async refreshSelectedUsage(): Promise<void> {
+	private requestSelectedDetails(): void {
 		const threadId = this.selectedThreadId;
-		if (this.users === 0 || !threadId || this.usageInFlight) return;
+		if (this.detailUsers === 0 || this.topSnapshot.connection !== "live" || !threadId) return;
+		if (this.detailInFlight) {
+			this.detailRefreshQueued = true;
+			return;
+		}
+		void this.refreshSelectedDetails(threadId);
+	}
 
-		this.usageInFlight = true;
+	private async refreshSelectedDetails(threadId: string): Promise<void> {
+		this.detailInFlight = true;
+		const now = Date.now();
+		const refreshDue = now - (this.detailUpdatedAt.get(threadId) ?? 0) >= this.detailMinimumIntervalMs;
 		try {
-			const output = await this.runCommand(["--no-color", "threads", "usage", threadId]);
-			const cost = parseThreadUsageCost(output);
-			if (cost) {
-				this.usageCosts.set(threadId, cost);
-				this.rebuildSnapshot();
+			if (refreshDue) {
+				const usageOutput = await this.runCommand(["--no-color", "threads", "usage", threadId], detailCommandTimeoutMs);
+				const cost = parseThreadUsageCost(usageOutput);
+				if (cost) this.usageCosts.set(threadId, cost);
 			}
 		} catch (error) {
 			// Usage is supplementary; inventory and controls remain available if it cannot be loaded.
-			logger.debug(`Unable to refresh selected thread usage: ${getErrorMessage(error)}`);
+			logger.debug(`Unable to refresh selected thread cost: ${getErrorMessage(error)}`);
+		}
+		try {
+			if (refreshDue) {
+				const exportOutput = await this.runCommand(
+					["--no-color", "threads", "export", threadId],
+					detailCommandTimeoutMs,
+				);
+				const details = parseThreadExportDetails(exportOutput);
+				if (details?.tokensUsed !== undefined) this.tokensUsed.set(threadId, details.tokensUsed);
+				if (details && !this.executionOrigins.has(threadId)) {
+					this.executionOrigins.set(threadId, details.executionOrigin);
+				}
+				this.detailUpdatedAt.set(threadId, now);
+				this.rebuildSnapshot();
+			}
+		} catch (error) {
+			// Export output is discarded immediately and is never logged or persisted.
+			logger.debug(`Unable to refresh selected thread token usage: ${getErrorMessage(error)}`);
 		} finally {
-			this.usageInFlight = false;
-			if (this.users > 0 && this.selectedThreadId && this.selectedThreadId !== threadId) {
-				void this.refreshSelectedUsage();
+			this.detailInFlight = false;
+			this.scheduleWorkingDetailFallback();
+			if (this.detailRefreshQueued || this.selectedThreadId !== threadId) {
+				this.detailRefreshQueued = false;
+				this.requestSelectedDetails();
 			}
 		}
 	}
 
-	private scheduleUsageRetries(): void {
+	private scheduleDetailRetries(): void {
 		const threadId = this.selectedThreadId;
-		if (!threadId || this.users === 0) return;
+		if (!threadId || this.detailUsers === 0) return;
 
-		this.cancelUsageRetries();
+		this.cancelDetailTimers();
+		this.requestSelectedDetails();
 		const refresh = (index: number): void => {
-			this.usageRetryTimer = setTimeout(() => {
-				this.usageRetryTimer = undefined;
-				if (this.users === 0 || this.selectedThreadId !== threadId) return;
-				void this.refreshSelectedUsage().finally(() => {
-					if (this.users > 0 && this.selectedThreadId === threadId && index + 1 < usageRetryDelaysMs.length) {
-						refresh(index + 1);
-					}
-				});
-			}, usageRetryDelaysMs[index]);
-			this.usageRetryTimer.unref();
+			const delay = this.detailRetryDelaysMs[index];
+			if (delay === undefined) return;
+			this.detailRetryTimer = setTimeout(() => {
+				this.detailRetryTimer = undefined;
+				if (this.detailUsers === 0 || this.selectedThreadId !== threadId) return;
+				this.requestSelectedDetails();
+				refresh(index + 1);
+			}, delay);
+			this.detailRetryTimer.unref();
 		};
 		refresh(0);
 	}
 
-	private cancelUsageRetries(): void {
-		if (this.usageRetryTimer) clearTimeout(this.usageRetryTimer);
-		this.usageRetryTimer = undefined;
+	private scheduleWorkingDetailFallback(): void {
+		if (this.detailWorkingTimer) clearTimeout(this.detailWorkingTimer);
+		this.detailWorkingTimer = undefined;
+		if (this.detailUsers === 0 || !this.selectedThread?.working) return;
+		this.detailWorkingTimer = setTimeout(() => {
+			this.detailWorkingTimer = undefined;
+			this.requestSelectedDetails();
+		}, this.workingDetailFallbackMs);
+		this.detailWorkingTimer.unref();
+	}
+
+	private cancelDetailTimers(): void {
+		if (this.detailRetryTimer) clearTimeout(this.detailRetryTimer);
+		if (this.detailWorkingTimer) clearTimeout(this.detailWorkingTimer);
+		this.detailRetryTimer = undefined;
+		this.detailWorkingTimer = undefined;
+		this.detailRefreshQueued = false;
 	}
 
 	private async restoreShippingState(): Promise<void> {

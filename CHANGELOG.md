@@ -8,12 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Local aggregate token-usage metadata on the Thread Status encoder, with compact two-decimal display values.
 - An animated Stream Deck+ showcase covering ready, hold, sent, working, shipping, and completed states.
 - A supported-devices note, including the Stream Deck+ testing scope and future CORSAIR GALLEON 100 SD goal.
 - A standalone contribution guide and GitHub funding configuration.
 
 ### Changed
 
+- Limited supplementary cost, token, and executor-origin enrichment to the visible Thread Status encoder with event-driven refreshes and bounded caching.
 - Refined the README layout, installation steps, device artwork, attribution, and release links.
 - Moved the unofficial-project notice below the overview images, linked Stream Deck+ references to Elgato, and removed internal inventory-schema details from the overview.
 - Simplified generated documentation assets to the transparent Puck artwork and animated device showcase.

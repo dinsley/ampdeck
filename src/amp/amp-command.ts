@@ -5,6 +5,8 @@ import { posix, win32 } from "node:path";
 
 import streamDeck from "@elgato/streamdeck";
 
+import type { ExecutionOrigin } from "./amp-top-model";
+
 const maximumOutputBytes = 2 * 1024 * 1024;
 const maximumErrorBytes = 4 * 1024;
 const maximumAcceptanceRecordBytes = 1024 * 1024;
@@ -163,8 +165,64 @@ export function parseThreadUsageCost(output: string): string | undefined {
 		?.slice(0, 20);
 }
 
+export type ThreadExportDetails = {
+	executionOrigin: ExecutionOrigin;
+	tokensUsed?: number;
+};
+
+export function parseThreadExportDetails(output: string): ThreadExportDetails | undefined {
+	try {
+		const value: unknown = JSON.parse(output);
+		if (!isRecord(value) || !Array.isArray(value.messages)) return undefined;
+
+		let tokensUsed = 0;
+		let foundUsage = false;
+		for (const message of value.messages as unknown[]) {
+			if (!isRecord(message) || !isRecord(message.usage)) continue;
+			const usage = message.usage;
+			const outputTokens = nonNegativeNumber(usage.outputTokens);
+			const totalInputTokens = nonNegativeNumber(usage.totalInputTokens);
+			const inputTokens = nonNegativeNumber(usage.inputTokens);
+			const cacheCreationTokens = nonNegativeNumber(usage.cacheCreationInputTokens);
+			const cacheReadTokens = nonNegativeNumber(usage.cacheReadInputTokens);
+			if (
+				outputTokens === undefined &&
+				totalInputTokens === undefined &&
+				inputTokens === undefined &&
+				cacheCreationTokens === undefined &&
+				cacheReadTokens === undefined
+			) {
+				continue;
+			}
+			foundUsage = true;
+			tokensUsed +=
+				(totalInputTokens ?? (inputTokens ?? 0) + (cacheCreationTokens ?? 0) + (cacheReadTokens ?? 0)) +
+				(outputTokens ?? 0);
+		}
+
+		const meta = isRecord(value.meta) ? value.meta : undefined;
+		return {
+			executionOrigin: parseExecutionOrigin(meta?.executorType),
+			tokensUsed: foundUsage && Number.isSafeInteger(tokensUsed) ? tokensUsed : undefined,
+		};
+	} catch {
+		return undefined;
+	}
+}
+
+function parseExecutionOrigin(value: unknown): ExecutionOrigin {
+	if (value === "local-client") return "cli";
+	if (value === "sandbox") return "orb";
+	if (value === "virtual") return "virtual";
+	return "unknown";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
+}
+
+function nonNegativeNumber(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 }
 
 function ampEnvironment(): NodeJS.ProcessEnv {

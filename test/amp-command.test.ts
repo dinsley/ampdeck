@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
 	isAcceptedUserRecord,
 	launchAmpCommand,
+	parseThreadExportDetails,
 	parseThreadUsageCost,
 	resolveAmpCommand,
 } from "../src/amp/amp-command.ts";
@@ -68,6 +69,43 @@ describe("Amp CLI output", () => {
 
 	it("ignores output without a display cost", () => {
 		assert.equal(parseThreadUsageCost("Thread usage is unavailable\n"), undefined);
+	});
+
+	it("aggregates input, cache, and output tokens from a sanitized thread export", () => {
+		assert.deepEqual(
+			parseThreadExportDetails(
+				JSON.stringify({
+					meta: { executorType: "sandbox" },
+					messages: [
+						{
+							usage: {
+								inputTokens: 100,
+								cacheCreationInputTokens: 20,
+								cacheReadInputTokens: 30,
+								outputTokens: 50,
+							},
+						},
+						{ usage: { totalInputTokens: 300, inputTokens: 999, outputTokens: 75 } },
+					],
+				}),
+			),
+			{ executionOrigin: "orb", tokensUsed: 575 },
+		);
+	});
+
+	it("maps observed executor origins and rejects malformed exports", () => {
+		assert.equal(parseThreadExportDetails("not json"), undefined);
+		for (const [executorType, executionOrigin] of [
+			["local-client", "cli"],
+			["sandbox", "orb"],
+			["virtual", "virtual"],
+			["future-value", "unknown"],
+		] as const) {
+			assert.deepEqual(parseThreadExportDetails(JSON.stringify({ meta: { executorType }, messages: [] })), {
+				executionOrigin,
+				tokensUsed: undefined,
+			});
+		}
 	});
 
 	it("recognizes only a streamed user acknowledgement for the expected thread", () => {

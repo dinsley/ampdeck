@@ -91,7 +91,7 @@ Review and Ship need a connected executor. Thread commands stay unavailable whil
 - **SHIPPING** — a shipping command was accepted and its workflow is active.
 - **DONE** — the current turn finished and no live executor is connected.
 
-The display includes the project, thread title, position in the attention-ordered list, time in the current state, latest update, executor availability, and usage cost. If cost data is missing, everything else keeps working.
+The display includes the project, thread title, position in the attention-ordered list, time in the current state, latest update, executor availability, token usage, and usage cost. Token and cost details are collected locally only while the Thread Status encoder is visible. If supplementary usage data is missing, everything else keeps working.
 
 ## Action feedback
 

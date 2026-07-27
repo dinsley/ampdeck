@@ -23,63 +23,148 @@ describe("thread usage cache", () => {
 	it("keeps a completed usage result when selection changes in flight", async () => {
 		const source = new FakeTopSource();
 		const usageRequests = new Map<string, Deferred<string>>();
+		const exportRequests = new Map<string, Deferred<string>>();
 		const store = new ThreadStore({
 			source,
+			detailMinimumIntervalMs: 0,
+			detailRetryDelaysMs: [],
 			runCommand: async (args) => {
 				if (args.includes("list")) return "[]";
 				const threadId = args.at(-1);
 				assert.ok(threadId);
 				const request = deferred<string>();
-				usageRequests.set(threadId, request);
+				if (args.includes("export")) exportRequests.set(threadId, request);
+				else usageRequests.set(threadId, request);
 				return request.promise;
 			},
 		});
 		const release = store.acquire();
+		const releaseDetails = store.acquireStatusDetails();
 		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
 
 		store.selectThread("T-one");
 		store.selectThread("T-two");
 		usageRequests.get("T-one")?.resolve("$1.23\n");
+		await until(() => exportRequests.has("T-one"));
+		exportRequests.get("T-one")?.resolve('{"messages":[{"usage":{"totalInputTokens":100,"outputTokens":23}}]}');
 		await until(() => usageRequests.has("T-two"));
 
 		assert.equal(store.snapshot.threads.find(({ id }) => id === "T-one")?.usageCost, "$1.23");
+		assert.equal(store.snapshot.threads.find(({ id }) => id === "T-one")?.tokensUsed, 123);
 
 		usageRequests.get("T-two")?.resolve("$4.56\n");
+		await until(() => exportRequests.has("T-two"));
+		exportRequests.get("T-two")?.resolve('{"messages":[{"usage":{"inputTokens":400,"outputTokens":56}}]}');
 		await until(() => store.snapshot.threads.find(({ id }) => id === "T-two")?.usageCost === "$4.56");
 		assert.deepEqual(
-			store.snapshot.threads.map(({ usageCost }) => usageCost),
-			["$1.23", "$4.56"],
+			store.snapshot.threads.map(({ usageCost, tokensUsed }) => ({ usageCost, tokensUsed })),
+			[
+				{ usageCost: "$1.23", tokensUsed: 123 },
+				{ usageCost: "$4.56", tokensUsed: 456 },
+			],
 		);
+		releaseDetails();
 		release();
 		store.dispose();
 	});
 
 	it("does not run supplementary CLI queries without a visible action", async () => {
 		const source = new FakeTopSource();
-		const usageThreadIds: string[] = [];
+		const detailThreadIds: string[] = [];
 		const store = new ThreadStore({
 			source,
 			runCommand: (args) => {
 				if (args.includes("list")) return Promise.resolve("[]");
 				const threadId = args.at(-1);
 				assert.ok(threadId);
-				usageThreadIds.push(threadId);
-				return Promise.resolve("$1.23\n");
+				detailThreadIds.push(threadId);
+				return Promise.resolve(args.includes("export") ? '{"messages":[{"usage":{"inputTokens":1}}]}' : "$1.23\n");
 			},
 		});
 		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
 
 		store.selectThread("T-one");
 		await new Promise((resolve) => setImmediate(resolve));
-		assert.deepEqual(usageThreadIds, []);
+		assert.deepEqual(detailThreadIds, []);
 
 		const release = store.acquire();
-		await until(() => usageThreadIds.length === 1);
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.deepEqual(detailThreadIds, []);
+
+		const releaseDetails = store.acquireStatusDetails();
+		await until(() => detailThreadIds.length === 2);
+		releaseDetails();
 		release();
 
 		store.selectThread("T-two");
 		await new Promise((resolve) => setImmediate(resolve));
-		assert.deepEqual(usageThreadIds, ["T-one"]);
+		assert.deepEqual(detailThreadIds, ["T-one", "T-one"]);
+		store.dispose();
+	});
+
+	it("coalesces snapshots, refreshes on completion, and stops after the status lease is released", async () => {
+		const source = new FakeTopSource();
+		const detailCommands: string[][] = [];
+		const store = new ThreadStore({
+			source,
+			detailMinimumIntervalMs: 0,
+			detailRetryDelaysMs: [],
+			runCommand: (args) => {
+				if (args.includes("list")) return Promise.resolve("[]");
+				detailCommands.push(args);
+				return Promise.resolve(args.includes("export") ? '{"messages":[{"usage":{"inputTokens":1}}]}' : "$0.01\n");
+			},
+		});
+		const release = store.acquire();
+		const releaseDetails = store.acquireStatusDetails();
+		store.selectThread("T-thread");
+		source.emit({ connection: "live", threads: [thread({ working: true })] });
+		await until(() => detailCommands.length === 2);
+
+		for (let index = 0; index < 3; index += 1) {
+			source.emit({ connection: "live", threads: [thread({ working: true })] });
+		}
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.equal(detailCommands.length, 2);
+
+		source.emit({ connection: "live", threads: [thread({ working: false })] });
+		await until(() => detailCommands.length === 4);
+
+		releaseDetails();
+		source.emit({ connection: "offline", threads: [thread()] });
+		source.emit({ connection: "live", threads: [thread()] });
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.equal(detailCommands.length, 4);
+
+		release();
+		store.dispose();
+	});
+
+	it("refreshes cached details after amp top reconnects", async () => {
+		const source = new FakeTopSource();
+		let detailCommandCount = 0;
+		const store = new ThreadStore({
+			source,
+			detailMinimumIntervalMs: 0,
+			detailRetryDelaysMs: [],
+			runCommand: (args) => {
+				if (args.includes("list")) return Promise.resolve("[]");
+				detailCommandCount += 1;
+				return Promise.resolve(args.includes("export") ? '{"messages":[{"usage":{"inputTokens":1}}]}' : "$0.01\n");
+			},
+		});
+		const release = store.acquire();
+		const releaseDetails = store.acquireStatusDetails();
+		store.selectThread("T-thread");
+		source.emit({ connection: "live", threads: [thread()] });
+		await until(() => detailCommandCount === 2);
+
+		source.emit({ connection: "offline", threads: [thread()] });
+		source.emit({ connection: "live", threads: [thread()] });
+		await until(() => detailCommandCount === 4);
+
+		releaseDetails();
+		release();
 		store.dispose();
 	});
 });
@@ -126,6 +211,8 @@ describe("thread metadata reconciliation", () => {
 					executorConnected: false,
 				}),
 				usageCost: undefined,
+				tokensUsed: undefined,
+				executionOrigin: undefined,
 				phase: undefined,
 			},
 		]);

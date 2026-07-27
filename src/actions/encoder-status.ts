@@ -36,6 +36,7 @@ export class EncoderStatus extends SingletonAction {
 	private readonly visibleActionIds = new Set<string>();
 	private clockRefreshBucket = Math.floor(Date.now() / clockRefreshIntervalMs);
 	private focusedThreadId: string | undefined;
+	private releaseDetails: (() => void) | undefined;
 	private releaseStore: (() => void) | undefined;
 	private snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 
@@ -62,6 +63,7 @@ export class EncoderStatus extends SingletonAction {
 		}, busyIndicatorFrameDurationMs);
 		this.animationTimer.unref();
 		this.releaseStore ??= this.store.acquire();
+		this.releaseDetails ??= this.store.acquireStatusDetails();
 		this.ensureFocusedThread();
 		await this.render(ev.action);
 	}
@@ -71,6 +73,8 @@ export class EncoderStatus extends SingletonAction {
 		if (this.visibleActionIds.size === 0) {
 			if (this.animationTimer) clearInterval(this.animationTimer);
 			this.animationTimer = undefined;
+			this.releaseDetails?.();
+			this.releaseDetails = undefined;
 			this.releaseStore?.();
 			this.releaseStore = undefined;
 		}

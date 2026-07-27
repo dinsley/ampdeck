@@ -60,8 +60,8 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 	const status = escapeXml(input.model.status);
 	const statusColor = statusColors[input.model.visualStatus];
 	const updated = escapeXml(formatCompactRelativeTime(input.thread.updatedAt, now));
-	const usage = escapeXml(truncateText(input.thread.usageCost ?? "—", 9));
-	const usageFontSize = splitGraphemes(input.thread.usageCost ?? "—").length > 7 ? 9 : 11;
+	const usage = escapeXml(truncateText(formatUsageCost(input.thread.usageCost), 7));
+	const tokens = escapeXml(formatCompactTokens(input.thread.tokensUsed));
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
 	const executorGlyph = renderExecutorGlyph(input.thread.executorConnected, executorColor);
@@ -101,8 +101,8 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 		executorLabel: getExecutorLabel(input.thread),
 		strongTextColor,
 		updated,
+		tokens,
 		usage,
-		usageFontSize,
 		borderColor,
 		statusBorderColor,
 		phaseDuration,
@@ -112,6 +112,27 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 		status,
 		activityDetail,
 	});
+}
+
+export function formatCompactTokens(tokens: number | undefined): string {
+	if (tokens === undefined || !Number.isFinite(tokens) || tokens < 0) return "—";
+	if (tokens < 1_000) return Math.round(tokens).toString();
+	if (tokens < 1_000_000) return `${formatCompactTokenNumber(tokens, 1_000)}K`;
+	return `${formatCompactTokenNumber(tokens, 1_000_000)}M`;
+}
+
+export function formatUsageCost(cost: string | undefined): string {
+	if (!cost) return "—";
+	const match = /^([$€£])\s?(\d+)(?:\.(\d+))?$/u.exec(cost.trim());
+	if (!match) return cost;
+	const [, currency, integer, fraction = ""] = match;
+	const targetFractionLength = Math.max(0, 4 - integer.length);
+	if (fraction.length >= targetFractionLength) return `${currency}${integer}${fraction ? `.${fraction}` : ""}`;
+	return `${currency}${integer}.${fraction.padEnd(targetFractionLength, "0")}`;
+}
+
+function formatCompactTokenNumber(tokens: number, divisor: number): string {
+	return (Math.trunc((tokens / divisor) * 100) / 100).toFixed(2);
 }
 
 function renderEncoderEmptySvg(template: string, snapshot: AmpTopSnapshot, viewBox: string): string {
