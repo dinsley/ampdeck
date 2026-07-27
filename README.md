@@ -2,6 +2,8 @@
 
 Amp Deck puts active [Amp](https://ampcode.com/) threads on a Stream Deck+. The touch strip shows what Amp is doing; the keys open threads and send common follow-up commands without a trip back to the terminal.
 
+> Amp Deck is an unofficial Stream Deck plugin for Amp. It is not affiliated with or endorsed by Amp / Amp Code.
+
 ![Recommended Amp Deck layout on Stream Deck+](./docs/images/recommended-layout.png)
 
 ## What it does
@@ -100,6 +102,8 @@ Changing the selected thread while holding a command cancels the command.
 ![Four examples from the bundled Puck gallery](./docs/images/puck-gallery.png)
 
 Show Puck is optional. Press for the next variation, or hold for a random one. The key briefly shows its number and name.
+
+See Amp's [What the Puck? list](https://ampcode.com/what-the-puck) for the full collection.
 
 ## Troubleshooting
 
