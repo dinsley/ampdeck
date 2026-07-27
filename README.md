@@ -11,8 +11,8 @@ Amp Deck puts active [Amp](https://ampcode.com/) threads on a Stream Deck+. The 
 > Amp Deck is an unofficial Stream Deck plugin for Amp. It is not affiliated with or endorsed by Amp / Amp Code.
 
 <p align="center">
-  <img src="./docs/images/orbin-time.png" alt="Puck saying It's orbin' time" width="34%">
-  <img src="./docs/images/recommended-layout.png" alt="Recommended Amp Deck layout on Stream Deck+" width="63%">
+  <img src="./docs/images/orbin-time.png" alt="Puck saying It's orbin' time" width="40%">
+  <img src="./docs/images/recommended-layout-animated.webp" alt="Amp Deck controls cycling through ready, working, shipping, and completed states on Stream Deck+" width="56%">
 </p>
 
 ## What it does
@@ -88,8 +88,6 @@ Review and Ship need a connected executor. Thread commands stay unavailable whil
 
 ## Thread states
 
-![Idle, Working, Shipping, and Done thread states](./docs/images/thread-states.png)
-
 - **IDLE** — a live executor is connected and ready for another command.
 - **WORKING** — Amp is actively planning or using tools in the thread.
 - **SHIPPING** — a shipping command was accepted and its workflow is active.
@@ -98,8 +96,6 @@ Review and Ship need a connected executor. Thread commands stay unavailable whil
 The display includes the project, thread title, position in the attention-ordered list, time in the current state, latest update, executor availability, and usage cost. If cost data is missing, everything else keeps working.
 
 ## Action feedback
-
-![Ready, holding, busy, sent, unavailable, and error action states](./docs/images/action-feedback.png)
 
 - A progress bar shows how long to keep holding the key.
 - **BUSY** means the request is being sent or another command is still cooling down.
@@ -111,8 +107,6 @@ The display includes the project, thread title, position in the attention-ordere
 Changing the selected thread while holding a command cancels the command.
 
 ## Show Puck
-
-![Four examples from the bundled Puck gallery](./docs/images/puck-gallery.png)
 
 Show Puck is optional. Press for the next variation, or hold for a random one. The key briefly shows its number and name.
 
@@ -187,75 +181,6 @@ Amp Deck's original code and documentation are available under the [MIT License]
 
 The MIT License does not apply to bundled third-party software, Puck artwork, Amp-derived iconography, trademarks, or design elements. Those materials remain subject to their respective owners' rights.
 
-## For contributors
+## Contributing
 
-Contributing requires Node.js 24 or newer. Clone the project, install dependencies, build, and link the plugin:
-
-```shell
-git clone https://github.com/dinsley/ampdeck.git
-cd ampdeck
-npm ci
-npm run build
-npx streamdeck link com.dinsley.ampdeck.sdPlugin
-```
-
-Run the full project check:
-
-```shell
-npm run check
-```
-
-`npm run check` covers formatting, linting, types, tests, the production bundle, and Stream Deck validation.
-
-For hardware testing, link once and start watch mode:
-
-```shell
-npx streamdeck link com.dinsley.ampdeck.sdPlugin
-npm run watch
-```
-
-Useful development commands:
-
-| Command                    | Purpose                                                        |
-| -------------------------- | -------------------------------------------------------------- |
-| `npm run build`            | Build the production plugin bundle.                            |
-| `npm run docs:screenshots` | Regenerate the README screenshots from the real SVG templates. |
-| `npm run pack`             | Build a local `.streamDeckPlugin` installer in `dist`.         |
-| `npm test`                 | Run the Node.js test suite.                                    |
-| `npm run lint`             | Run type-aware Oxlint with zero warnings allowed.              |
-| `npm run typecheck`        | Type-check without emitting files.                             |
-| `npm run format`           | Format the repository with Prettier.                           |
-| `npm run validate`         | Validate the plugin manifest, assets, and layouts.             |
-
-Remove the development link with:
-
-```shell
-npx streamdeck unlink com.dinsley.ampdeck
-```
-
-## Create a release
-
-1. Update `version` in `package.json` using `MAJOR.MINOR.PATCH`.
-2. Update `Version` in `com.dinsley.ampdeck.sdPlugin/manifest.json` to the
-   matching four-part value, `MAJOR.MINOR.PATCH.0`.
-3. Run the full check:
-
-   ```shell
-   npm run check
-   ```
-
-4. Commit and push the version changes.
-5. Create and push the matching tag:
-
-   ```shell
-   git tag vMAJOR.MINOR.PATCH
-   git push origin vMAJOR.MINOR.PATCH
-   ```
-
-The tag starts the `Release` workflow. It confirms that the tag matches
-`package.json`, runs the full check, builds the Stream Deck plugin, writes a
-SHA-256 checksum, and generates a build provenance attestation. GitHub release
-notes are generated automatically, and the release is published after every
-step passes.
-
-Please report security concerns according to [SECURITY.md](./SECURITY.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, project checks, hardware testing, and release instructions.

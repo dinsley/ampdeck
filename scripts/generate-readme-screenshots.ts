@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -23,6 +24,7 @@ const commandFeedbackTemplate = readFileSync(resolve(repositoryRoot, "src", "ass
 const openThreadKeyTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "open-thread-key.svg"), "utf8");
 const streamDeckPlusFrame = readFileSync(resolve(repositoryRoot, "docs", "assets", "stream-deck-plus-frame.webp"));
 const fixedNow = Date.UTC(2026, 6, 26, 22, 0, 0);
+type RecommendedLayoutState = "ready" | "holding" | "sent" | "working" | "shipping" | "done";
 
 mkdirSync(outputDirectory, { recursive: true });
 
@@ -78,31 +80,19 @@ const threadStates = [
 	}),
 ] as const;
 
-writeScreenshot("recommended-layout", 1400, 1356, renderRecommendedLayout());
-writeScreenshot("thread-states", 1600, 520, renderThreadStates());
-writeScreenshot("action-feedback", 1600, 760, renderActionFeedback());
-writeScreenshot("puck-gallery", 1600, 420, renderPuckGallery());
+writeAnimation("recommended-layout", 1400, 1356, [
+	["ready", 140],
+	["holding", 80],
+	["sent", 110],
+	["working", 130],
+	["shipping", 130],
+	["done", 150],
+]);
 
-function renderRecommendedLayout(): string {
-	const surface = threadStates[0].surface;
-	const commandKeys = [
-		renderOpenThreadKeySvg({ title: "Add saved payment methods", dimmed: false }),
-		renderCommandKeySvg({
-			label: "ARCHIVE",
-			detail: "Add saved payment methods",
-			icon: "archive",
-		}),
-		renderCommandKeySvg({
-			label: "REVIEW",
-			detail: "Add saved payment methods",
-			icon: "review",
-		}),
-		renderCommandKeySvg({
-			label: "SHIP",
-			detail: "Add saved payment methods",
-			icon: "ship",
-		}),
-	];
+function renderRecommendedLayout(state: RecommendedLayoutState = "ready"): string {
+	const stateIndex = { ready: 0, holding: 0, sent: 0, working: 1, shipping: 2, done: 3 }[state];
+	const surface = threadStates[stateIndex].surface;
+	const commandKeys = renderRecommendedCommandKeys(state);
 	const keyX = [168, 461, 754, 1048] as const;
 	const pucks = [118, 123, 132, 137] as const;
 
@@ -111,6 +101,12 @@ function renderRecommendedLayout(): string {
 		1356,
 		`
 		${embeddedRaster(streamDeckPlusFrame, "image/webp", 0, 0, 1400, 1356)}
+		${keyX
+			.map(
+				(x) =>
+					`<rect x="${x - 9}" y="121" width="202" height="202" rx="29" fill="#0D0E12" stroke="#08090C" stroke-width="7"/>`,
+			)
+			.join("")}
 		${pucks
 			.map(
 				(puck, index) => `
@@ -127,91 +123,56 @@ function renderRecommendedLayout(): string {
 	);
 }
 
-function renderThreadStates(): string {
-	const coordinates = [
-		[80, 75],
-		[820, 75],
-		[80, 295],
-		[820, 295],
-	] as const;
+function renderRecommendedCommandKeys(state: RecommendedLayoutState): string[] {
+	const title = {
+		ready: "Add saved payment methods",
+		holding: "Add saved payment methods",
+		sent: "Add saved payment methods",
+		working: "Repair keyboard navigation",
+		shipping: "Prepare the release candidate",
+		done: "Trace intermittent timeouts",
+	}[state];
+	const commandKey = (
+		label: CommandKeyOptions["label"],
+		icon: CommandKeyOptions["icon"],
+		options: Partial<CommandKeyOptions> = {},
+	): string => renderCommandKeySvg({ label, detail: title, icon, ...options });
+	const open = renderOpenThreadKeySvg({ title, dimmed: false });
 
-	return canvas(
-		1600,
-		520,
-		`
-		${threadStates
-			.map((state, index) => {
-				const [x, y] = coordinates[index];
-				return `
-				<rect x="${x}" y="${y}" width="700" height="150" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
-				<rect x="${x + 24}" y="${y + 16}" width="652" height="118" rx="16" fill="#101114"/>
-				${embeddedSvg(state.surface, x + 30, y + 25, 640, 80)}`;
-			})
-			.join("")}`,
-	);
-}
-
-function renderActionFeedback(): string {
-	const examples = [
-		renderCommandKeySvg({
-			label: "REVIEW",
-			detail: "Add saved payment methods",
-			icon: "review",
-		}),
-		renderCommandKeySvg({
-			label: "SHIP",
-			detail: "Add saved payment methods",
-			icon: "ship",
-			progress: 0.62,
-		}),
-		renderCommandKeySvg({
-			label: "ARCHIVE",
-			detail: "Add saved payment methods",
-			icon: "archive",
-			dimmed: true,
-			footer: "BUSY",
-			loading: true,
-		}),
-		renderCommandFeedbackSvg("sent"),
-		renderCommandFeedbackSvg("unavailable"),
-		renderCommandFeedbackSvg("error"),
-	];
-
-	return canvas(
-		1600,
-		760,
-		`
-		${examples
-			.map((example, index) => {
-				const x = 120 + (index % 3) * 500;
-				const y = 70 + Math.floor(index / 3) * 340;
-				return `
-				<rect x="${x}" y="${y}" width="360" height="280" rx="32" fill="#202228" stroke="#343740" stroke-width="2"/>
-				<rect x="${x + 58}" y="${y + 18}" width="244" height="244" rx="28" fill="#101114"/>
-				${embeddedSvg(example, x + 68, y + 28, 224, 224)}`;
-			})
-			.join("")}`,
-	);
-}
-
-function renderPuckGallery(): string {
-	const pucks = [118, 123, 132, 137] as const;
-
-	return canvas(
-		1600,
-		420,
-		`
-		${pucks
-			.map((puck, index) => {
-				const x = 80 + (index % 4) * 380;
-				const y = 55;
-				return `
-				<rect x="${x}" y="${y}" width="330" height="310" rx="32" fill="#202228" stroke="#343740" stroke-width="2"/>
-				<rect x="${x + 20}" y="${y + 10}" width="290" height="290" rx="28" fill="#111217"/>
-				${embeddedPng(puck, x + 20, y + 10, 290, 290)}`;
-			})
-			.join("")}`,
-	);
+	switch (state) {
+		case "holding":
+			return [
+				open,
+				commandKey("ARCHIVE", "archive"),
+				commandKey("REVIEW", "review", { progress: 0.68 }),
+				commandKey("SHIP", "ship"),
+			];
+		case "sent":
+			return [open, commandKey("ARCHIVE", "archive"), renderCommandFeedbackSvg("sent"), commandKey("SHIP", "ship")];
+		case "working":
+			return [
+				open,
+				commandKey("ARCHIVE", "archive", { dimmed: true, footer: "WORKING" }),
+				commandKey("REVIEW", "review", { dimmed: true, footer: "WORKING" }),
+				commandKey("SHIP", "ship", { dimmed: true, footer: "WORKING" }),
+			];
+		case "shipping":
+			return [
+				open,
+				commandKey("ARCHIVE", "archive", { dimmed: true, footer: "SHIPPING" }),
+				commandKey("REVIEW", "review", { dimmed: true, footer: "SHIPPING" }),
+				commandKey("SHIP", "ship", { dimmed: true, footer: "BUSY", loading: true }),
+			];
+		case "done":
+			return [
+				open,
+				commandKey("ARCHIVE", "archive"),
+				commandKey("REVIEW", "review", { dimmed: true, footer: "NO EXECUTOR" }),
+				commandKey("SHIP", "ship", { dimmed: true, footer: "NO EXECUTOR" }),
+			];
+		default:
+			return [open, commandKey("ARCHIVE", "archive"), commandKey("REVIEW", "review"), commandKey("SHIP", "ship")];
+	}
 }
 
 function threadState(options: {
@@ -296,10 +257,49 @@ function embeddedPng(number: number, x: number, y: number, width: number, height
 	return `<image x="${x}" y="${y}" width="${width}" height="${height}" href="data:image/png;base64,${readFileSync(path).toString("base64")}"/>`;
 }
 
-function writeScreenshot(name: string, width: number, height: number, svg: string): void {
-	const svgPath = resolve(outputDirectory, `${name}.svg`);
-	const pngPath = resolve(outputDirectory, `${name}.png`);
-	writeFileSync(svgPath, `${svg.replaceAll(/[ \t]+$/gm, "").trim()}\n`);
+function writeAnimation(
+	name: string,
+	width: number,
+	height: number,
+	frames: ReadonlyArray<readonly [RecommendedLayoutState, number]>,
+): void {
+	const temporaryDirectory = mkdtempSync(resolve(tmpdir(), "ampdeck-readme-"));
+	try {
+		const framePaths = frames.map(([state], index) => {
+			const svgPath = resolve(temporaryDirectory, `${index}.svg`);
+			const pngPath = resolve(temporaryDirectory, `${index}.png`);
+			writeFileSync(
+				svgPath,
+				`${renderRecommendedLayout(state)
+					.replaceAll(/[ \t]+$/gm, "")
+					.trim()}\n`,
+			);
+			rasterizeSvg(svgPath, pngPath, width, height);
+			return pngPath;
+		});
+		const animationArguments = frames.flatMap(([, delay], index) => ["-delay", delay.toString(), framePaths[index]]);
+		execFileSync(
+			"magick",
+			[
+				...animationArguments,
+				"-loop",
+				"0",
+				"-resize",
+				"900x",
+				"-quality",
+				"84",
+				"-define",
+				"webp:method=6",
+				resolve(outputDirectory, `${name}-animated.webp`),
+			],
+			{ stdio: "ignore" },
+		);
+	} finally {
+		rmSync(temporaryDirectory, { recursive: true, force: true });
+	}
+}
+
+function rasterizeSvg(svgPath: string, pngPath: string, width: number, height: number): void {
 	const browser = findBrowser();
 	execFileSync(
 		browser,
