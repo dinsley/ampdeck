@@ -158,7 +158,7 @@ Development logs live in the linked `.sdPlugin` directory's `logs` folder.
 
 ## Credits and attribution
 
-The bundled Puck images, Puck icon, Amp-derived iconography, and Amp / Amp Code design tokens are attributed to **Amp / Amp Code**.
+The bundled Puck images, Puck icon, Amp-derived iconography, and Amp / Amp Code design tokens are attributed to **[Amp / Amp Code](https://ampcode.com/)**.
 
 Amp, Amp Code, Puck, their associated artwork and icons, and their visual design language belong to their respective owners. Amp Deck is an independent project and is not affiliated with or endorsed by Amp / Amp Code.
 
@@ -214,10 +214,29 @@ Remove the development link with:
 npx streamdeck unlink com.dinsley.ampdeck
 ```
 
-For a GitHub release, update the version in `package.json` and the four-part
-version in `manifest.json`. Commit both, then push a matching
-`vMAJOR.MINOR.PATCH` tag. The release workflow runs the full check, packages
-the plugin, generates a checksum and build provenance attestation, and creates
-a draft release with the installer.
+## Create a release
+
+1. Update `version` in `package.json` using `MAJOR.MINOR.PATCH`.
+2. Update `Version` in `com.dinsley.ampdeck.sdPlugin/manifest.json` to the
+   matching four-part value, `MAJOR.MINOR.PATCH.0`.
+3. Run the full check:
+
+   ```shell
+   npm run check
+   ```
+
+4. Commit and push the version changes.
+5. Create and push the matching tag:
+
+   ```shell
+   git tag vMAJOR.MINOR.PATCH
+   git push origin vMAJOR.MINOR.PATCH
+   ```
+
+The tag starts the `Release` workflow. It confirms that the tag matches
+`package.json`, runs the full check, builds the Stream Deck plugin, writes a
+SHA-256 checksum, and generates a build provenance attestation. GitHub release
+notes are generated automatically, and the release is published after every
+step passes.
 
 Please report security concerns according to [SECURITY.md](./SECURITY.md).
