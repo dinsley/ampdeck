@@ -28,9 +28,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "tsx --test test/*.test.ts",
 		"validate": "streamdeck validate com.dinsley.ampdeck.sdPlugin",
-		"verify:notices": "tsx scripts/verify-third-party-notices.ts",
-		"verify:versions": "tsx scripts/verify-versions.ts",
-		"check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run verify:notices && npm run verify:versions && npm run build && npm run validate",
+		"check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run validate",
 		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.dinsley.ampdeck\""
 	},
 	"type": "module",

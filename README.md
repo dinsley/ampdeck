@@ -171,8 +171,6 @@ Development builds write logs inside the linked `.sdPlugin` directory's `logs` f
 - Archive changes the thread's server-side archive state as soon as the hold completes.
 - If Stream Deck closes while a command is running, check the Amp thread before trying again.
 
-See the complete [Amp Deck privacy statement](./PRIVACY.md).
-
 ## Credits and attribution
 
 All bundled Puck images, the Puck icon, other Amp-derived iconography, and the design tokens used to reflect the Amp / Amp Code visual language are attributed to **Amp / Amp Code**.
@@ -183,7 +181,7 @@ Amp, Amp Code, Puck, their associated artwork and icons, and their visual design
 
 Amp Deck's original code and documentation are available under the [MIT License](./LICENSE).
 
-The MIT License does not apply to bundled third-party software, Puck artwork, Amp-derived iconography, trademarks, or design elements. Those materials remain subject to their respective owners' rights and the notices below.
+The MIT License does not apply to bundled third-party software, Puck artwork, Amp-derived iconography, trademarks, or design elements. Those materials remain subject to their respective owners' rights.
 
 ## For contributors
 
@@ -223,8 +221,6 @@ Useful development commands:
 | `npm run lint`             | Run type-aware Oxlint with zero warnings allowed.              |
 | `npm run typecheck`        | Type-check without emitting files.                             |
 | `npm run format`           | Format the repository with Prettier.                           |
-| `npm run verify:notices`   | Confirm bundled dependencies appear in third-party notices.    |
-| `npm run verify:versions`  | Confirm package and Stream Deck versions match.                |
 | `npm run validate`         | Validate the plugin manifest, assets, and layouts.             |
 
 To remove the development link:
@@ -240,73 +236,3 @@ packages the plugin, generates a checksum and build provenance attestation, and
 assembles the release as a draft before publishing the installer.
 
 Please report security concerns according to [SECURITY.md](./SECURITY.md).
-
-## Third-party notices
-
-Amp Deck bundles the following third-party runtime software:
-
-- `@elgato/streamdeck` 2.1.0 — Copyright (c) Corsair Memory Inc.
-- `@elgato/schemas` 0.4.15 — Copyright (c) 2023 Corsair Memory Inc.
-- `@elgato/utils` 0.4.5 — Copyright (c) Corsair Memory Inc.
-- `entities` 8.0.0 — Copyright (c) Felix Böhm.
-- `zod` 3.25.76 — Copyright (c) 2025 Colin McDonnell.
-- `ws` 8.21.1 — Copyright (c) 2011 Einar Otto Stangvik; Copyright (c) 2013 Arnout Kazemier and contributors; Copyright (c) 2016 Luigi Pinca and contributors.
-
-<details>
-<summary>MIT license used by the Elgato packages, zod, and ws</summary>
-
-Copyright (c) Corsair Memory Inc.<br>
-Copyright (c) 2023 Corsair Memory Inc.<br>
-Copyright (c) 2025 Colin McDonnell<br>
-Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com><br>
-Copyright (c) 2013 Arnout Kazemier and contributors<br>
-Copyright (c) 2016 Luigi Pinca and contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-</details>
-
-<details>
-<summary>BSD 2-Clause license used by entities</summary>
-
-Copyright (c) Felix Böhm<br>
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-THIS IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-</details>

@@ -46,7 +46,6 @@ const streamDeckVersion = `${releaseVersion}.0`;
 const sourcePluginDirectory = join(repositoryRoot, pluginDirectoryName);
 const licensePath = join(repositoryRoot, "LICENSE");
 const readmePath = join(repositoryRoot, "README.md");
-const privacyPath = join(repositoryRoot, "PRIVACY.md");
 const securityPath = join(repositoryRoot, "SECURITY.md");
 const documentationImagesPath = join(repositoryRoot, "docs", "images");
 const outputDirectory = join(repositoryRoot, "dist");
@@ -59,7 +58,6 @@ try {
 	rmSync(join(stagingPluginDirectory, "logs"), { force: true, recursive: true });
 	cpSync(licensePath, join(stagingPluginDirectory, "LICENSE"));
 	cpSync(readmePath, join(stagingPluginDirectory, "README.md"));
-	cpSync(privacyPath, join(stagingPluginDirectory, "PRIVACY.md"));
 	cpSync(securityPath, join(stagingPluginDirectory, "SECURITY.md"));
 	mkdirSync(join(stagingPluginDirectory, "docs"), { recursive: true });
 	cpSync(documentationImagesPath, join(stagingPluginDirectory, "docs", "images"), { recursive: true });
