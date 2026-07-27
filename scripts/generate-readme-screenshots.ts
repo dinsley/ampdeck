@@ -77,99 +77,71 @@ const threadStates = [
 	}),
 ] as const;
 
-writeScreenshot("recommended-layout", 1600, 900, renderRecommendedLayout());
-writeScreenshot("thread-states", 1600, 900, renderThreadStates());
-writeScreenshot("action-feedback", 1600, 900, renderActionFeedback());
-writeScreenshot("puck-gallery", 1600, 650, renderPuckGallery());
+writeScreenshot("recommended-layout", 1600, 720, renderRecommendedLayout());
+writeScreenshot("thread-states", 1600, 520, renderThreadStates());
+writeScreenshot("action-feedback", 1600, 760, renderActionFeedback());
+writeScreenshot("puck-gallery", 1600, 420, renderPuckGallery());
 
 function renderRecommendedLayout(): string {
 	const surface = threadStates[0].surface;
 	const keys = [
-		{
-			label: "Open in browser",
-			svg: renderOpenThreadKeySvg({ title: "Add saved payment methods", dimmed: false }),
-		},
-		{
-			label: "Review changes",
-			svg: renderCommandKeySvg({
-				label: "REVIEW",
-				detail: "Add saved payment methods",
-				icon: "review",
-			}),
-		},
-		{
-			label: "Run shipping workflow",
-			svg: renderCommandKeySvg({
-				label: "SHIP",
-				detail: "Add saved payment methods",
-				icon: "ship",
-			}),
-		},
-		{
-			label: "Archive thread",
-			svg: renderCommandKeySvg({
-				label: "ARCHIVE",
-				detail: "Add saved payment methods",
-				icon: "archive",
-			}),
-		},
+		renderOpenThreadKeySvg({ title: "Add saved payment methods", dimmed: false }),
+		renderCommandKeySvg({
+			label: "REVIEW",
+			detail: "Add saved payment methods",
+			icon: "review",
+		}),
+		renderCommandKeySvg({
+			label: "SHIP",
+			detail: "Add saved payment methods",
+			icon: "ship",
+		}),
+		renderCommandKeySvg({
+			label: "ARCHIVE",
+			detail: "Add saved payment methods",
+			icon: "archive",
+		}),
 	];
 
 	return canvas(
 		1600,
-		900,
+		720,
 		`
-		<text x="120" y="108" class="eyebrow">RECOMMENDED STREAM DECK+ PAGE</text>
-		<text x="120" y="164" class="heading">One selected thread. Four deliberate actions.</text>
-		<text x="120" y="207" class="body">Rotate any encoder to choose a thread; every key follows that shared selection.</text>
-		<rect x="155" y="258" width="1290" height="512" rx="50" fill="#202228" stroke="#343740" stroke-width="3"/>
-		<rect x="197" y="298" width="1206" height="260" rx="30" fill="#17191D"/>
+		<rect x="155" y="42" width="1290" height="590" rx="50" fill="#202228" stroke="#343740" stroke-width="3"/>
+		<rect x="197" y="82" width="1206" height="280" rx="30" fill="#17191D"/>
 		${keys
 			.map(
 				(key, index) => `
-				${embeddedSvg(key.svg, 294 + index * 255, 330, 170, 170)}
-				<text x="${379 + index * 255}" y="535" class="caption" text-anchor="middle">${key.label}</text>`,
+				${embeddedSvg(key, 286 + index * 255, 112, 188, 188)}`,
 			)
 			.join("")}
-		<rect x="197" y="586" width="1206" height="151" rx="24" fill="#101114"/>
-		${embeddedSvg(surface, 240, 592, 1120, 140)}
+		<rect x="197" y="396" width="1206" height="151" rx="24" fill="#101114"/>
+		${embeddedSvg(surface, 240, 402, 1120, 140)}
 		<g fill="#5B5F69">
-			${[0, 1, 2, 3].map((index) => `<circle cx="${380 + index * 280}" cy="802" r="26"/>`).join("")}
-		</g>
-		<text x="800" y="857" class="caption" text-anchor="middle">Thread Status spans all four encoder slots</text>`,
+			${[0, 1, 2, 3].map((index) => `<circle cx="${380 + index * 280}" cy="592" r="26"/>`).join("")}
+		</g>`,
 	);
 }
 
 function renderThreadStates(): string {
-	const descriptions = [
-		"Executor connected and ready",
-		"Amp is planning or using tools",
-		"Shipping workflow is active",
-		"Turn complete; no executor connected",
-	];
 	const coordinates = [
-		[80, 212],
-		[820, 212],
-		[80, 530],
-		[820, 530],
+		[80, 75],
+		[820, 75],
+		[80, 295],
+		[820, 295],
 	] as const;
 
 	return canvas(
 		1600,
-		900,
+		520,
 		`
-		<text x="80" y="90" class="eyebrow">THREAD STATUS</text>
-		<text x="80" y="146" class="heading">Know what needs attention at a glance.</text>
 		${threadStates
 			.map((state, index) => {
 				const [x, y] = coordinates[index];
 				return `
-				<rect x="${x}" y="${y}" width="700" height="252" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
-				<text x="${x + 28}" y="${y + 46}" class="card-title">${state.model.status}</text>
-				<text x="${x + 672}" y="${y + 45}" class="caption" text-anchor="end">${descriptions[index]}</text>
-				<rect x="${x + 24}" y="${y + 72}" width="652" height="118" rx="16" fill="#101114"/>
-				${embeddedSvg(state.surface, x + 30, y + 81, 640, 80)}
-				<text x="${x + 28}" y="${y + 224}" class="small">${state.note}</text>`;
+				<rect x="${x}" y="${y}" width="700" height="150" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
+				<rect x="${x + 24}" y="${y + 16}" width="652" height="118" rx="16" fill="#101114"/>
+				${embeddedSvg(state.surface, x + 30, y + 25, 640, 80)}`;
 			})
 			.join("")}`,
 	);
@@ -177,97 +149,64 @@ function renderThreadStates(): string {
 
 function renderActionFeedback(): string {
 	const examples = [
-		{
-			title: "READY",
-			note: ["Press Open, or hold", "a command"],
-			svg: renderCommandKeySvg({
-				label: "REVIEW",
-				detail: "Add saved payment methods",
-				icon: "review",
-			}),
-		},
-		{
-			title: "HOLDING",
-			note: ["Release early to cancel"],
-			svg: renderCommandKeySvg({
-				label: "SHIP",
-				detail: "Add saved payment methods",
-				icon: "ship",
-				progress: 0.62,
-			}),
-		},
-		{
-			title: "BUSY",
-			note: ["Command is being", "accepted"],
-			svg: renderCommandKeySvg({
-				label: "ARCHIVE",
-				detail: "Add saved payment methods",
-				icon: "archive",
-				dimmed: true,
-				footer: "BUSY",
-				loading: true,
-			}),
-		},
-		{ title: "SENT", note: ["Review or Ship", "was accepted"], svg: renderCommandFeedbackSvg("sent") },
-		{
-			title: "UNAVAILABLE",
-			note: ["The action is", "temporarily blocked"],
-			svg: renderCommandFeedbackSvg("unavailable"),
-		},
-		{ title: "ERROR", note: ["Check the thread or", "plugin log"], svg: renderCommandFeedbackSvg("error") },
+		renderCommandKeySvg({
+			label: "REVIEW",
+			detail: "Add saved payment methods",
+			icon: "review",
+		}),
+		renderCommandKeySvg({
+			label: "SHIP",
+			detail: "Add saved payment methods",
+			icon: "ship",
+			progress: 0.62,
+		}),
+		renderCommandKeySvg({
+			label: "ARCHIVE",
+			detail: "Add saved payment methods",
+			icon: "archive",
+			dimmed: true,
+			footer: "BUSY",
+			loading: true,
+		}),
+		renderCommandFeedbackSvg("sent"),
+		renderCommandFeedbackSvg("unavailable"),
+		renderCommandFeedbackSvg("error"),
 	];
 
 	return canvas(
 		1600,
-		900,
+		760,
 		`
-		<text x="80" y="90" class="eyebrow">ACTION FEEDBACK</text>
-		<text x="80" y="146" class="heading">Guarded commands show exactly what is happening.</text>
-		<text x="80" y="188" class="body">Review, Ship, and Archive use hold-to-confirm; all command keys target the selected thread.</text>
 		${examples
 			.map((example, index) => {
-				const x = 80 + (index % 3) * 500;
-				const y = 250 + Math.floor(index / 3) * 310;
+				const x = 120 + (index % 3) * 500;
+				const y = 70 + Math.floor(index / 3) * 340;
 				return `
-				<rect x="${x}" y="${y}" width="440" height="250" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
-				${embeddedSvg(example.svg, x + 30, y + 28, 180, 180)}
-				<text x="${x + 238}" y="${y + 80}" class="card-title">${example.title}</text>
-				<text x="${x + 238}" y="${y + 120}" class="small">${example.note
-					.map((line, lineIndex) => `<tspan x="${x + 238}" dy="${lineIndex === 0 ? 0 : 28}">${line}</tspan>`)
-					.join("")}</text>`;
+				<rect x="${x}" y="${y}" width="360" height="280" rx="32" fill="#202228" stroke="#343740" stroke-width="2"/>
+				<rect x="${x + 58}" y="${y + 18}" width="244" height="244" rx="28" fill="#101114"/>
+				${embeddedSvg(example, x + 68, y + 28, 224, 224)}`;
 			})
 			.join("")}`,
 	);
 }
 
 function renderPuckGallery(): string {
-	const pucks = [
-		{ number: 118, name: "LAVA LAMP" },
-		{ number: 123, name: "BISMUTH" },
-		{ number: 132, name: "ELECTRONICS" },
-		{ number: 137, name: "DICHROIC" },
-	] as const;
+	const pucks = [118, 123, 132, 137] as const;
 
 	return canvas(
 		1600,
-		650,
+		420,
 		`
-		<text x="80" y="90" class="eyebrow">SHOW PUCK</text>
-		<text x="80" y="146" class="heading">A different companion for every press.</text>
-		<text x="80" y="188" class="body">Press for the next variation, or hold to choose one at random.</text>
 		${pucks
 			.map((puck, index) => {
 				const x = 80 + (index % 4) * 380;
-				const y = 238;
+				const y = 55;
 				return `
-				<rect x="${x}" y="${y}" width="330" height="282" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
-				<rect x="${x + 20}" y="${y + 20}" width="242" height="242" rx="24" fill="#111217"/>
-				${embeddedPng(puck.number, x + 20, y + 20, 242, 242)}
-				<text x="${x + 282}" y="${y + 60}" class="caption" text-anchor="middle">#${puck.number}</text>
-				<text transform="translate(${x + 288} ${y + 100}) rotate(90)" class="puck-name">${puck.name}</text>`;
+				<rect x="${x}" y="${y}" width="330" height="310" rx="32" fill="#202228" stroke="#343740" stroke-width="2"/>
+				<rect x="${x + 20}" y="${y + 10}" width="290" height="290" rx="28" fill="#111217"/>
+				${embeddedPng(puck, x + 20, y + 10, 290, 290)}`;
 			})
-			.join("")}
-		<text x="800" y="586" class="caption" text-anchor="middle">Four examples from 138 bundled variations</text>`,
+			.join("")}`,
 	);
 }
 
@@ -285,7 +224,6 @@ function threadState(options: {
 	usageCost: string;
 }): {
 	model: DisplayModel;
-	note: string;
 	surface: string;
 } {
 	const thread: AmpTopThread = {
@@ -305,14 +243,6 @@ function threadState(options: {
 	};
 	return {
 		model,
-		note:
-			options.status === "IDLE"
-				? "Rotate to browse • press to select • long-touch to open"
-				: options.status === "WORKING"
-					? "Thread commands stay unavailable while work is active"
-					: options.status === "SHIPPING"
-						? "Review, Ship, and Archive stay blocked during shipping"
-						: "Open and Archive remain available",
 		surface: renderEncoderFocusSurfaceSvg(encoderTemplate, {
 			thread,
 			model,
@@ -339,17 +269,6 @@ function renderCommandFeedbackSvg(kind: CommandFeedbackKind): string {
 
 function canvas(width: number, height: number, content: string): string {
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-		<style>
-			:root { color-scheme: dark; }
-			text { font-family: "Segoe UI", Inter, Arial, sans-serif; }
-			.eyebrow { fill: #E7B84B; font-size: 19px; font-weight: 700; letter-spacing: 2px; }
-			.heading { fill: #F5F3ED; font-size: 42px; font-weight: 700; }
-			.body { fill: #B7BBC4; font-size: 22px; }
-			.card-title { fill: #F5F3ED; font-size: 24px; font-weight: 700; letter-spacing: .8px; }
-			.caption { fill: #B7BBC4; font-size: 17px; }
-			.small { fill: #A6ABB4; font-size: 18px; }
-			.puck-name { fill: #F5F3ED; font-size: 13px; font-weight: 700; letter-spacing: .7px; }
-		</style>
 		<rect width="${width}" height="${height}" fill="#121317"/>
 		<circle cx="1460" cy="60" r="220" fill="#F0A832" opacity=".055"/>
 		${content}
