@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { posix, win32 } from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -12,7 +12,7 @@ import {
 describe("Amp CLI resolution", () => {
 	it("finds the default installation outside PATH on macOS and Linux", () => {
 		for (const platform of ["darwin", "linux"] as const) {
-			const expected = join("/Users/example", ".amp", "bin", "amp");
+			const expected = posix.join("/Users/example", ".amp", "bin", "amp");
 			assert.equal(
 				resolveAmpCommand(platform, "/Users/example", (path) => path === expected),
 				expected,
@@ -22,7 +22,7 @@ describe("Amp CLI resolution", () => {
 
 	it("uses the Windows executable name", () => {
 		const home = String.raw`C:\Users\example`;
-		const expected = join(home, ".amp", "bin", "amp.exe");
+		const expected = win32.join(home, ".amp", "bin", "amp.exe");
 		assert.equal(
 			resolveAmpCommand("win32", home, (path) => path === expected),
 			expected,

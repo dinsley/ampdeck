@@ -1,7 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { posix, win32 } from "node:path";
 
 import streamDeck from "@elgato/streamdeck";
 
@@ -22,13 +22,15 @@ export function resolveAmpCommand(
 	fileExists: (path: string) => boolean = existsSync,
 ): string {
 	const executableName = platform === "win32" ? "amp.exe" : "amp";
-	const candidates = [join(home, ".amp", "bin", executableName)];
+	const joinPath = (...segments: string[]): string =>
+		platform === "win32" ? win32.join(...segments) : posix.join(...segments);
+	const candidates = [joinPath(home, ".amp", "bin", executableName)];
 
 	if (platform === "darwin") {
 		candidates.push("/opt/homebrew/bin/amp", "/usr/local/bin/amp");
 	} else if (platform === "linux") {
 		candidates.push(
-			join(home, ".local", "bin", "amp"),
+			joinPath(home, ".local", "bin", "amp"),
 			"/home/linuxbrew/.linuxbrew/bin/amp",
 			"/usr/local/bin/amp",
 			"/usr/bin/amp",
