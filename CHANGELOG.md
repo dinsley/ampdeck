@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- Local aggregate token-usage metadata on the Thread Status encoder, with compact two-decimal display values.
+- Local aggregate token usage and execution-origin metadata on the Thread Status encoder, with faster parallel loading, activity-aware origin icons, and a consistent enlarged metadata layout.
 - An animated Stream Deck+ showcase covering ready, hold, sent, working, shipping, and completed states.
 - A supported-devices note, including the Stream Deck+ testing scope and future CORSAIR GALLEON 100 SD goal.
 - A standalone contribution guide and GitHub funding configuration.

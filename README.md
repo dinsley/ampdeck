@@ -91,7 +91,9 @@ Review and Ship need a connected executor. Thread commands stay unavailable whil
 - **SHIPPING** — a shipping command was accepted and its workflow is active.
 - **DONE** — the current turn finished and no live executor is connected.
 
-The display includes the project, thread title, position in the attention-ordered list, time in the current state, latest update, executor availability, token usage, and usage cost. Token and cost details are collected locally only while the Thread Status encoder is visible. If supplementary usage data is missing, everything else keeps working.
+The display includes the project, thread title, position in the attention-ordered list, time in the current state, latest update, local/Orb execution origin and activity, token usage, and usage cost. Supplementary details are collected locally only while the Thread Status encoder is visible. If they are unavailable, everything else keeps working.
+
+Execution origin and token usage are derived from `amp threads export`. Thread exports grow as long-running conversations accumulate messages, so Amp Deck currently caps exported thread data at 5 MiB. Threads whose exports exceed that limit continue to work, but their origin and token metadata may be unavailable.
 
 ## Action feedback
 
