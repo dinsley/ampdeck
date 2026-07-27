@@ -3,9 +3,13 @@
 	"compilerOptions": {
 		"customConditions": ["node"],
 		"allowImportingTsExtensions": true,
+		"isolatedModules": true,
 		"module": "ES2022",
 		"moduleResolution": "Bundler",
-		"noImplicitOverride": true
+		"noEmit": true,
+		"noImplicitOverride": true,
+		"types": ["node"],
+		"verbatimModuleSyntax": true
 	},
 	"include": ["src/**/*.ts", "test/**/*.ts"],
 	"exclude": ["node_modules"]

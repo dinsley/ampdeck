@@ -1,10 +1,10 @@
 import streamDeck, {
 	action,
-	KeyDownEvent,
-	KeyUpEvent,
 	SingletonAction,
-	WillAppearEvent,
-	WillDisappearEvent,
+	type KeyDownEvent,
+	type KeyUpEvent,
+	type WillAppearEvent,
+	type WillDisappearEvent,
 } from "@elgato/streamdeck";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

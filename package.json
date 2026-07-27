@@ -24,7 +24,7 @@
 		"pack": "npm run build && tsx scripts/pack-plugin.ts",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint . --max-warnings 0",
+		"lint": "oxlint . --type-aware --deny-warnings --report-unused-disable-directives",
 		"typecheck": "tsc --noEmit",
 		"test": "tsx --test test/*.test.ts",
 		"validate": "streamdeck validate com.dinsley.ampdeck.sdPlugin",
@@ -39,28 +39,26 @@
 	},
 	"devDependencies": {
 		"@elgato/cli": "^1.5.1",
-		"@eslint/js": "^10.0.1",
 		"@rollup/plugin-commonjs": "^29.0.3",
 		"@rollup/plugin-node-resolve": "^16.0.3",
+		"@rollup/plugin-swc": "^0.4.1",
 		"@rollup/plugin-terser": "^1.0.0",
-		"@rollup/plugin-typescript": "^12.1.0",
+		"@swc/core": "^1.15.46",
 		"@tsconfig/node24": "^24.0.4",
-		"@types/node": "~24.0.0",
-		"eslint": "^10.8.0",
-		"eslint-config-prettier": "^10.1.8",
-		"globals": "^17.8.0",
+		"@types/node": "^24.13.3",
+		"oxlint": "^1.75.0",
+		"oxlint-tsgolint": "^7.0.2001",
 		"prettier": "^3.9.6",
 		"rollup": "^4.62.3",
 		"tsx": "^4.23.1",
-		"typescript": "^5.2.2",
-		"typescript-eslint": "^8.65.0"
+		"typescript": "^7.0.2"
 	},
 	"dependencies": {
 		"@elgato/streamdeck": "^2.1.0",
-		"entities": "^8.0.0",
-		"tslib": "^2.8.1"
+		"entities": "^8.0.0"
 	},
 	"allowScripts": {
+		"@swc/core@1.15.46": true,
 		"esbuild@0.28.1": true
 	}
 }

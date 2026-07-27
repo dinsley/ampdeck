@@ -1,7 +1,7 @@
 import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
+import swc from "@rollup/plugin-swc";
 import terser from "@rollup/plugin-terser";
-import typescript from "@rollup/plugin-typescript";
 import { rmSync } from "node:fs";
 import path from "node:path";
 import url from "node:url";
@@ -46,12 +46,18 @@ const config = {
 				this.addWatchFile(`${sdPlugin}/layouts`);
 			},
 		},
-		typescript({
-			mapRoot: isWatching ? "./" : undefined,
-			tsconfig: "./tsconfig.build.json",
+		swc({
+			swc: {
+				jsc: {
+					parser: { syntax: "typescript" },
+					target: "es2024",
+				},
+				sourceMaps: isWatching,
+			},
 		}),
 		nodeResolve({
 			browser: false,
+			extensions: [".mjs", ".js", ".json", ".node", ".ts"],
 			exportConditions: ["node"],
 			preferBuiltins: true,
 		}),
