@@ -260,7 +260,7 @@ function renderPuckGallery(): string {
 		`
 		<text x="80" y="90" class="eyebrow">SHOW PUCK</text>
 		<text x="80" y="146" class="heading">A different companion for every press.</text>
-		<text x="80" y="188" class="body">Press for the next variation, or hold for 0.75 seconds to choose one at random.</text>
+		<text x="80" y="188" class="body">Press for the next variation, or hold to choose one at random.</text>
 		${pucks
 			.map((puck, index) => {
 				const x = 80 + (index % 4) * 380;

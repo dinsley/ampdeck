@@ -37,7 +37,7 @@ export function renderCommandKeySvg(template: string, options: CommandKeyOptions
 		options.progress === undefined
 			? ""
 			: `<rect x="18" y="126" width="108" height="6" rx="3" fill="#DDD2AA"/>
-			<rect x="18" y="126" width="${108 * progress}" height="6" rx="3" fill="${options.color}"/>`;
+			<rect x="18" y="126" width="${108 * progress}" height="6" rx="3" fill="#0B0D0B"/>`;
 	return renderSvgTemplate(template, {
 		backgroundColor,
 		outlineColor,

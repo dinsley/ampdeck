@@ -15,7 +15,7 @@
 
 		<text x="80" y="90" class="eyebrow">SHOW PUCK</text>
 		<text x="80" y="146" class="heading">A different companion for every press.</text>
-		<text x="80" y="188" class="body">Press for the next variation, or hold for 0.75 seconds to choose one at random.</text>
+		<text x="80" y="188" class="body">Press for the next variation, or hold to choose one at random.</text>
 
 				<rect x="80" y="238" width="330" height="282" rx="28" fill="#202228" stroke="#343740" stroke-width="2"/>
 				<rect x="100" y="258" width="242" height="242" rx="24" fill="#111217"/>

@@ -59,4 +59,17 @@ describe("command surface rendering", () => {
 		assert.match(feedback, />SENT<\/text>/);
 		for (const svg of [loading, open, feedback]) assert.doesNotMatch(svg, /\{\{|undefined/);
 	});
+
+	it("renders hold progress with black ink instead of the action color", () => {
+		const holding = renderCommandKeySvg(commandTemplate, {
+			label: "SHIP",
+			detail: "Thread",
+			color: "#F34E3F",
+			icon: "ship",
+			progress: 0.5,
+		});
+
+		assert.match(holding, /width="54" height="6" rx="3" fill="#0B0D0B"/);
+		assert.doesNotMatch(holding, /height="6" rx="3" fill="#F34E3F"/);
+	});
 });
