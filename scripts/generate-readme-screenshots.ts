@@ -21,6 +21,7 @@ const encoderTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "e
 const commandKeyTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "command-key.svg"), "utf8");
 const commandFeedbackTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "command-feedback.svg"), "utf8");
 const openThreadKeyTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "open-thread-key.svg"), "utf8");
+const streamDeckPlusFrame = readFileSync(resolve(repositoryRoot, "docs", "assets", "stream-deck-plus-frame.webp"));
 const fixedNow = Date.UTC(2026, 6, 26, 22, 0, 0);
 
 mkdirSync(outputDirectory, { recursive: true });
@@ -77,15 +78,20 @@ const threadStates = [
 	}),
 ] as const;
 
-writeScreenshot("recommended-layout", 1600, 720, renderRecommendedLayout());
+writeScreenshot("recommended-layout", 1400, 1356, renderRecommendedLayout());
 writeScreenshot("thread-states", 1600, 520, renderThreadStates());
 writeScreenshot("action-feedback", 1600, 760, renderActionFeedback());
 writeScreenshot("puck-gallery", 1600, 420, renderPuckGallery());
 
 function renderRecommendedLayout(): string {
 	const surface = threadStates[0].surface;
-	const keys = [
+	const commandKeys = [
 		renderOpenThreadKeySvg({ title: "Add saved payment methods", dimmed: false }),
+		renderCommandKeySvg({
+			label: "ARCHIVE",
+			detail: "Add saved payment methods",
+			icon: "archive",
+		}),
 		renderCommandKeySvg({
 			label: "REVIEW",
 			detail: "Add saved payment methods",
@@ -96,30 +102,28 @@ function renderRecommendedLayout(): string {
 			detail: "Add saved payment methods",
 			icon: "ship",
 		}),
-		renderCommandKeySvg({
-			label: "ARCHIVE",
-			detail: "Add saved payment methods",
-			icon: "archive",
-		}),
 	];
+	const keyX = [168, 461, 754, 1048] as const;
+	const pucks = [118, 123, 132, 137] as const;
 
 	return canvas(
-		1600,
-		720,
+		1400,
+		1356,
 		`
-		<rect x="155" y="42" width="1290" height="590" rx="50" fill="#202228" stroke="#343740" stroke-width="3"/>
-		<rect x="197" y="82" width="1206" height="280" rx="30" fill="#17191D"/>
-		${keys
+		${embeddedRaster(streamDeckPlusFrame, "image/webp", 0, 0, 1400, 1356)}
+		${pucks
 			.map(
-				(key, index) => `
-				${embeddedSvg(key, 286 + index * 255, 112, 188, 188)}`,
+				(puck, index) => `
+				<clipPath id="puck-key-${index}">
+					<rect x="${keyX[index] + 4}" y="136" width="176" height="176" rx="14"/>
+				</clipPath>
+				<g clip-path="url(#puck-key-${index})">
+					${embeddedPng(puck, keyX[index] + 4, 136, 176, 176)}
+				</g>`,
 			)
 			.join("")}
-		<rect x="197" y="396" width="1206" height="151" rx="24" fill="#101114"/>
-		${embeddedSvg(surface, 240, 402, 1120, 140)}
-		<g fill="#5B5F69">
-			${[0, 1, 2, 3].map((index) => `<circle cx="${380 + index * 280}" cy="592" r="26"/>`).join("")}
-		</g>`,
+		${commandKeys.map((key, index) => embeddedSvg(key, keyX[index], 346, 184, 184)).join("")}
+		${embeddedSvg(surface, 160, 639, 1080, 135)}`,
 	);
 }
 
@@ -275,6 +279,10 @@ function canvas(width: number, height: number, content: string): string {
 
 function embeddedSvg(svg: string, x: number, y: number, width: number, height: number): string {
 	return `<image x="${x}" y="${y}" width="${width}" height="${height}" href="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}"/>`;
+}
+
+function embeddedRaster(image: Buffer, mimeType: string, x: number, y: number, width: number, height: number): string {
+	return `<image x="${x}" y="${y}" width="${width}" height="${height}" href="data:${mimeType};base64,${image.toString("base64")}"/>`;
 }
 
 function embeddedPng(number: number, x: number, y: number, width: number, height: number): string {
