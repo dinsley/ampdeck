@@ -79,7 +79,7 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" "$plugin" "$checksum" \
               --generate-notes \
-              --title "Amp Deck ${{ steps.version.outputs.number }}" \
+              --title "${{ steps.version.outputs.number }}" \
               --draft \
               --verify-tag
           fi
