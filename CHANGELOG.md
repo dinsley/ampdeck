@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Refined the README layout, installation steps, device artwork, attribution, and release links.
+- Moved the unofficial-project notice below the overview images, linked Stream Deck+ references to Elgato, and removed internal inventory-schema details from the overview.
 - Simplified generated documentation assets to the transparent Puck artwork and animated device showcase.
 - Removed the duplicated project name from generated GitHub release names.
 

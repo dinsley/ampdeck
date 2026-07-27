@@ -6,35 +6,33 @@
   <a href="https://github.com/dinsley/ampdeck/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/dinsley/ampdeck?display_name=tag&amp;sort=semver"></a>
 </p>
 
-Amp Deck puts active [Amp](https://ampcode.com/) threads on a Stream Deck+. The touch strip shows what Amp is doing; the keys open threads and send common follow-up commands without a trip back to the terminal.
-
-> Amp Deck is an unofficial Stream Deck plugin for Amp. It is not affiliated with or endorsed by Amp / Amp Code.
+Amp Deck puts active [Amp](https://ampcode.com/) threads on a [Stream Deck+]. The touch strip shows what Amp is doing; the keys open threads and send common follow-up commands without a trip back to the terminal.
 
 <p align="center">
   <img src="./docs/images/orbin-time.png" alt="Puck saying It's orbin' time" width="40%">
-  <img src="./docs/images/recommended-layout-animated.webp" alt="Amp Deck controls cycling through ready, working, shipping, and completed states on Stream Deck+" width="56%">
+  <a href="https://www.elgato.com/ca/en/p/stream-deck-plus"><img src="./docs/images/recommended-layout-animated.webp" alt="Amp Deck controls cycling through ready, working, shipping, and completed states on Stream Deck+" width="56%"></a>
 </p>
+
+> Amp Deck is an unofficial Stream Deck plugin for Amp. It is not affiliated with or endorsed by Amp / Amp Code.
 
 ## What it does
 
-- **See Amp at a glance.** Active, unarchived threads and their current state span the four Stream Deck+ encoders.
+- **See Amp at a glance.** Active, unarchived threads and their current state span the four [Stream Deck+] encoders.
 - **Turn a dial, pick a thread.** Every Amp Deck key follows the same selection.
 - **Work from the deck.** Open, review, ship, or archive the selected thread. Riskier commands use hold-to-confirm and block unsafe duplicates.
 - **No second login.** The plugin uses the Amp CLI and account already on your computer.
 - **Show Puck, if you want.** Add one of 138 bundled variations to any Stream Deck.
 
-Thread data comes from Amp's experimental live inventory, `amp top --stream-jsonl`. If that schema changes incompatibly, Amp Deck fails closed: it disables thread commands until it receives a valid snapshot.
-
 ## Prerequisites
 
-- a **Stream Deck+**;
+- a **[Stream Deck+]**;
 - **Stream Deck 7.1 or newer**;
 - **macOS 13.5 or newer**, or **Windows 10 or newer**;
 - the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account.
 
 ### Supported devices
 
-Only **Stream Deck+** is currently supported. It is the only device available for development and hardware testing, so other Stream Deck hardware should be considered untested.
+Only **[Stream Deck+]** is currently supported. It is the only device available for development and hardware testing, so other Stream Deck hardware should be considered untested.
 
 A future goal is to support the [CORSAIR GALLEON 100 SD](https://www.elgato.com/ca/en/p/galleon-100-sd-stream-deck-integrated-mechanical-keyboard-ch-912a31i-na). Its integrated Stream Deck controls could support a more tailored Amp Deck experience than reusing the current four-encoder layout.
 
@@ -57,7 +55,7 @@ To build from source instead, see [For contributors](#for-contributors).
    ```
 
 2. Open the Stream Deck app and find **Amp Deck** in the action list.
-3. Add **Thread Status** to all four encoder slots on one Stream Deck+ page. The four slots join into one continuous display.
+3. Add **Thread Status** to all four encoder slots on one [Stream Deck+] page. The four slots join into one continuous display.
 4. Add **Open Thread**, **Review Thread**, **Ship Thread**, and **Archive Thread** to the keys above the display.
 5. Rotate any encoder to choose a thread. The title shown on each command key updates with the shared selection.
 
@@ -171,7 +169,7 @@ Development logs live in the linked `.sdPlugin` directory's `logs` folder.
 
 The bundled Puck images, Puck icon, Amp-derived iconography, and Amp / Amp Code design tokens are attributed to **[Amp / Amp Code](https://ampcode.com/)**.
 
-The Stream Deck+ device frame in the README is adapted from Elgato's [Stream Deck Kit simulator assets](https://github.com/elgatosf/streamdeck-kit-ipad), copyright Corsair Memory Inc. and provided under the [MIT License](./docs/assets/LICENSE.streamdeck-kit).
+The [Stream Deck+] device frame in the README is adapted from Elgato's [Stream Deck Kit simulator assets](https://github.com/elgatosf/streamdeck-kit-ipad), copyright Corsair Memory Inc. and provided under the [MIT License](./docs/assets/LICENSE.streamdeck-kit).
 
 Amp, Amp Code, Puck, their associated artwork and icons, and their visual design language belong to their respective owners. Amp Deck is an independent project and is not affiliated with or endorsed by Amp / Amp Code.
 
@@ -184,3 +182,5 @@ The MIT License does not apply to bundled third-party software, Puck artwork, Am
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, project checks, hardware testing, and release instructions.
+
+[Stream Deck+]: https://www.elgato.com/ca/en/p/stream-deck-plus
