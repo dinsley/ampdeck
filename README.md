@@ -110,52 +110,6 @@ Show Puck is optional. Press for the next variation, or hold for a random one. T
 
 See Amp's [What the Puck? list](https://ampcode.com/what-the-puck) for the full collection.
 
-## Troubleshooting
-
-### The display says `AMP CLI OFFLINE`
-
-Check Amp from a terminal:
-
-```shell
-amp update
-amp login
-amp top
-```
-
-The plugin retries automatically. If `amp top` works but the display stays offline, restart the plugin:
-
-```shell
-npx streamdeck restart com.dinsley.ampdeck
-```
-
-### The display says `NO ACTIVE THREADS`
-
-`amp top` has no active threads to report. Start or continue an unarchived thread, then give the display a moment to refresh.
-
-### A command says `UNAVAILABLE`
-
-Make sure:
-
-- a thread is selected;
-- Amp is online;
-- the thread is not currently working or shipping;
-- Review and Ship have a connected executor; and
-- another command is not already in progress.
-
-### Amp works in a terminal but not in Stream Deck
-
-Stream Deck does not inherit every terminal path. If Amp lives somewhere unusual, reinstall it in a standard location or make it available to desktop apps, then restart Stream Deck.
-
-### Review or Ship is unavailable on a completed local thread
-
-Review and Ship only run when Amp reports a connected executor, which keeps the command in the right project. Reconnect the original runner or continue the thread from a terminal in that repository. Archive remains available.
-
-### A command shows `ERROR`
-
-Open the Amp thread and check for an approval, clarification request, or error. Running the same action from the Amp CLI may expose an authentication, permission, or connection problem.
-
-Development logs live in the linked `.sdPlugin` directory's `logs` folder.
-
 ## Safety and privacy
 
 - Authentication stays with the local Amp CLI; Amp Deck does not store its own API key.
