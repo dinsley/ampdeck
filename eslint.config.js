@@ -7,7 +7,7 @@ const typedFiles = ["src/**/*.ts", "test/**/*.ts"];
 
 export default tseslint.config(
 	{
-		ignores: ["com.daniel-insley.amp-deck.sdPlugin/bin/**"],
+		ignores: ["com.dinsley.ampdeck.sdPlugin/bin/**"],
 	},
 	{
 		...eslint.configs.recommended,

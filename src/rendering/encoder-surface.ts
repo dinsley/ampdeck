@@ -137,8 +137,8 @@ function renderEncoderEmptySvg(template: string, snapshot: AmpTopSnapshot, viewB
 }
 
 function getActivityDetail(model: DisplayModel): string {
-	if (model.status === "SHIPPING") return "Shipping workflow in progress";
-	if (model.status === "WORKING") return "Planning or executing next step";
+	if (model.status === "SHIPPING") return "Shipping workflow active";
+	if (model.status === "WORKING") return "Planning or using tools";
 	if (model.status === "DONE") return "Task turn completed";
 	return "Ready for another command";
 }

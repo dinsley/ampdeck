@@ -168,5 +168,5 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function ampEnvironment(): NodeJS.ProcessEnv {
-	return { ...process.env, AMP_DECK_DISABLE_COMPANION: "1", NO_COLOR: "1" };
+	return { ...process.env, NO_COLOR: "1" };
 }

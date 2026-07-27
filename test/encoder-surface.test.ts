@@ -88,6 +88,7 @@ describe("encoder surface rendering", () => {
 		assert.match(focused, /data-busy-indicator="morphing-dots"/);
 		assert.match(focused, /data-busy-frame="8"/);
 		assert.match(focused, /fill="#0B0D0B"/);
+		assert.match(focused, /Planning or using tools/);
 		assert.doesNotMatch(focused, /stroke-dasharray/);
 	});
 });

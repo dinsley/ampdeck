@@ -136,6 +136,38 @@ describe("temporary action feedback", () => {
 		assert.equal(feedback.get(action.id), undefined);
 		feedback.disappear(action.id);
 	});
+
+	it("restores the current state when an older image request resolves last", async () => {
+		const feedback = new TemporaryFeedback<string>();
+		const firstImage = deferred<void>();
+		let imageRequest = 0;
+		let restoredValue: string | undefined;
+		const action = {
+			id: "action",
+			setImage: () => {
+				imageRequest += 1;
+				return imageRequest === 1 ? firstImage.promise : Promise.resolve();
+			},
+		};
+		const restore = (): Promise<void> => {
+			restoredValue = feedback.get(action.id);
+			return Promise.resolve();
+		};
+		feedback.appear(action.id);
+
+		const firstShow = feedback.show(action, "sent", "first", restore, (error) => {
+			throw error;
+		});
+		await feedback.show(action, "error", "second", restore, (error) => {
+			throw error;
+		});
+		firstImage.resolve();
+		await firstShow;
+
+		assert.equal(feedback.get(action.id), "error");
+		assert.equal(restoredValue, "error");
+		feedback.disappear(action.id);
+	});
 });
 
 type Deferred<T> = {

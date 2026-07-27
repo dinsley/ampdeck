@@ -24,12 +24,14 @@ describe("thread usage cache", () => {
 		const source = new FakeTopSource();
 		const usageRequests = new Map<string, Deferred<string>>();
 		const store = new ThreadStore(source, async (args) => {
+			if (args.includes("search")) return "[]";
 			const threadId = args.at(-1);
 			assert.ok(threadId);
 			const request = deferred<string>();
 			usageRequests.set(threadId, request);
 			return request.promise;
 		});
+		const release = store.acquire();
 		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
 
 		store.selectThread("T-one");
@@ -45,6 +47,33 @@ describe("thread usage cache", () => {
 			store.snapshot.threads.map(({ usageCost }) => usageCost),
 			["$1.23", "$4.56"],
 		);
+		release();
+		store.dispose();
+	});
+
+	it("does not run supplementary CLI queries without a visible action", async () => {
+		const source = new FakeTopSource();
+		const usageThreadIds: string[] = [];
+		const store = new ThreadStore(source, (args) => {
+			if (args.includes("search")) return Promise.resolve("[]");
+			const threadId = args.at(-1);
+			assert.ok(threadId);
+			usageThreadIds.push(threadId);
+			return Promise.resolve("$1.23\n");
+		});
+		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
+
+		store.selectThread("T-one");
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.deepEqual(usageThreadIds, []);
+
+		const release = store.acquire();
+		await until(() => usageThreadIds.length === 1);
+		release();
+
+		store.selectThread("T-two");
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.deepEqual(usageThreadIds, ["T-one"]);
 		store.dispose();
 	});
 });

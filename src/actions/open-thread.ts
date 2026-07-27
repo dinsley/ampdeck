@@ -12,7 +12,7 @@ import { renderCommandFeedback, renderOpenThreadKey, type CommandFeedbackKind } 
 import { ThreadStore } from "../state/thread-store";
 import { TemporaryFeedback } from "./temporary-feedback";
 
-@action({ UUID: "com.daniel-insley.amp-deck.open-thread" })
+@action({ UUID: "com.dinsley.ampdeck.open-thread" })
 export class OpenThread extends SingletonAction {
 	private readonly feedback = new TemporaryFeedback<CommandFeedbackKind>();
 	private releaseStore: (() => void) | undefined;

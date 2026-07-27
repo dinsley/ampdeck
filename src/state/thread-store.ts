@@ -123,7 +123,7 @@ export class ThreadStore {
 		this.selectionRevision += 1;
 		this.cancelUsageRetries();
 		this.notify();
-		void this.refreshSelectedUsage();
+		if (this.users > 0) void this.refreshSelectedUsage();
 	}
 
 	clearSelection(threadId: string): void {
@@ -180,7 +180,7 @@ export class ThreadStore {
 	}
 
 	private async refreshShippingLabels(): Promise<void> {
-		if (this.shippingLabelsInFlight) return;
+		if (this.users === 0 || this.shippingLabelsInFlight) return;
 		this.shippingLabelsInFlight = true;
 		try {
 			const output = await this.runCommand([
@@ -206,7 +206,7 @@ export class ThreadStore {
 
 	private async refreshSelectedUsage(): Promise<void> {
 		const threadId = this.selectedThreadId;
-		if (!threadId || this.usageInFlight) return;
+		if (this.users === 0 || !threadId || this.usageInFlight) return;
 
 		this.usageInFlight = true;
 		try {
@@ -220,7 +220,9 @@ export class ThreadStore {
 			// Usage is supplementary; inventory and controls remain available if it cannot be loaded.
 		} finally {
 			this.usageInFlight = false;
-			if (this.selectedThreadId && this.selectedThreadId !== threadId) void this.refreshSelectedUsage();
+			if (this.users > 0 && this.selectedThreadId && this.selectedThreadId !== threadId) {
+				void this.refreshSelectedUsage();
+			}
 		}
 	}
 

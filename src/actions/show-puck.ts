@@ -43,7 +43,7 @@ const puckNames: Partial<Record<number, string>> = {
 
 const randomHoldMs = 750;
 
-@action({ UUID: "com.daniel-insley.amp-deck.puck-variation" })
+@action({ UUID: "com.dinsley.ampdeck.show-puck" })
 export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 	private readonly currentNumbers = new Map<string, number>();
 	private readonly generations = new Map<string, number>();

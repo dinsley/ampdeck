@@ -33,7 +33,7 @@ const threadStates = [
 		visualStatus: "idle",
 		executorConnected: true,
 		working: false,
-		position: "3 OF 8",
+		position: "3/8",
 		updatedSecondsAgo: 18,
 		phaseSecondsAgo: 142,
 		usageCost: "$1.84",
@@ -45,7 +45,7 @@ const threadStates = [
 		visualStatus: "running",
 		executorConnected: true,
 		working: true,
-		position: "1 OF 8",
+		position: "1/8",
 		updatedSecondsAgo: 3,
 		phaseSecondsAgo: 47,
 		usageCost: "$0.92",
@@ -58,7 +58,7 @@ const threadStates = [
 		executorConnected: true,
 		working: true,
 		phase: "shipping",
-		position: "1 OF 8",
+		position: "1/8",
 		updatedSecondsAgo: 8,
 		phaseSecondsAgo: 76,
 		usageCost: "$3.16",
@@ -70,7 +70,7 @@ const threadStates = [
 		visualStatus: "done",
 		executorConnected: false,
 		working: false,
-		position: "6 OF 8",
+		position: "6/8",
 		updatedSecondsAgo: 540,
 		phaseSecondsAgo: 540,
 		usageCost: "$2.05",
@@ -94,7 +94,6 @@ function renderRecommendedLayout(): string {
 			svg: renderCommandKeySvg({
 				label: "REVIEW",
 				detail: "Add saved payment methods",
-				color: "#F34E3F",
 				icon: "review",
 			}),
 		},
@@ -103,7 +102,6 @@ function renderRecommendedLayout(): string {
 			svg: renderCommandKeySvg({
 				label: "SHIP",
 				detail: "Add saved payment methods",
-				color: "#F34E3F",
 				icon: "ship",
 			}),
 		},
@@ -112,7 +110,6 @@ function renderRecommendedLayout(): string {
 			svg: renderCommandKeySvg({
 				label: "ARCHIVE",
 				detail: "Add saved payment methods",
-				color: "#D6A038",
 				icon: "archive",
 			}),
 		},
@@ -135,7 +132,7 @@ function renderRecommendedLayout(): string {
 			)
 			.join("")}
 		<rect x="197" y="586" width="1206" height="151" rx="24" fill="#101114"/>
-		${embeddedSvg(surface, 240, 609, 1120, 140)}
+		${embeddedSvg(surface, 240, 592, 1120, 140)}
 		<g fill="#5B5F69">
 			${[0, 1, 2, 3].map((index) => `<circle cx="${380 + index * 280}" cy="802" r="26"/>`).join("")}
 		</g>
@@ -186,7 +183,6 @@ function renderActionFeedback(): string {
 			svg: renderCommandKeySvg({
 				label: "REVIEW",
 				detail: "Add saved payment methods",
-				color: "#F34E3F",
 				icon: "review",
 			}),
 		},
@@ -196,7 +192,6 @@ function renderActionFeedback(): string {
 			svg: renderCommandKeySvg({
 				label: "SHIP",
 				detail: "Add saved payment methods",
-				color: "#F34E3F",
 				icon: "ship",
 				progress: 0.62,
 			}),
@@ -207,7 +202,6 @@ function renderActionFeedback(): string {
 			svg: renderCommandKeySvg({
 				label: "ARCHIVE",
 				detail: "Add saved payment methods",
-				color: "#D6A038",
 				icon: "archive",
 				dimmed: true,
 				footer: "BUSY",
@@ -369,7 +363,7 @@ function embeddedSvg(svg: string, x: number, y: number, width: number, height: n
 function embeddedPng(number: number, x: number, y: number, width: number, height: number): string {
 	const path = resolve(
 		repositoryRoot,
-		"com.daniel-insley.amp-deck.sdPlugin",
+		"com.dinsley.ampdeck.sdPlugin",
 		"imgs",
 		"pucks",
 		`puck-${number.toString().padStart(3, "0")}.png`,

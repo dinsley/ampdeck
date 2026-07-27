@@ -7,7 +7,7 @@ import path from "node:path";
 import url from "node:url";
 
 const isWatching = !!process.env.ROLLUP_WATCH;
-const sdPlugin = "com.daniel-insley.amp-deck.sdPlugin";
+const sdPlugin = "com.dinsley.ampdeck.sdPlugin";
 
 /**
  * @type {import('rollup').RollupOptions}

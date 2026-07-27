@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -44,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "$GITHUB_REF_NAME"
-          dist/com.daniel-insley.amp-deck.streamDeckPlugin
+          dist/com.dinsley.ampdeck.streamDeckPlugin
           --generate-notes
           --title "Amp Deck ${{ steps.version.outputs.number }}"
           --verify-tag

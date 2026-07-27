@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const pluginDirectoryName = "com.daniel-insley.amp-deck.sdPlugin";
+const pluginDirectoryName = "com.dinsley.ampdeck.sdPlugin";
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const packageJsonPath = join(repositoryRoot, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };
@@ -44,15 +44,15 @@ if (!/^\d+\.\d+\.\d+$/u.test(releaseVersion)) {
 
 const streamDeckVersion = `${releaseVersion}.0`;
 const sourcePluginDirectory = join(repositoryRoot, pluginDirectoryName);
-const noticesPath = join(repositoryRoot, "THIRD_PARTY_NOTICES.md");
+const readmePath = join(repositoryRoot, "README.md");
 const outputDirectory = join(repositoryRoot, "dist");
-const stagingRoot = mkdtempSync(join(tmpdir(), "amp-deck-release-"));
+const stagingRoot = mkdtempSync(join(tmpdir(), "ampdeck-release-"));
 const stagingPluginDirectory = join(stagingRoot, pluginDirectoryName);
 const streamDeckCli = join(repositoryRoot, "node_modules", "@elgato", "cli", "bin", "streamdeck.mjs");
 
 try {
 	cpSync(sourcePluginDirectory, stagingPluginDirectory, { recursive: true });
-	cpSync(noticesPath, join(stagingPluginDirectory, "THIRD_PARTY_NOTICES.md"));
+	cpSync(readmePath, join(stagingPluginDirectory, "README.md"));
 	mkdirSync(outputDirectory, { recursive: true });
 
 	const cliArguments = [

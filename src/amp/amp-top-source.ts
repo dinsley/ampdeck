@@ -49,7 +49,7 @@ export class AmpTopSource {
 
 		const child = spawn(resolveAmpCommand(), ["top", "--stream-jsonl"], {
 			windowsHide: true,
-			env: { ...process.env, AMP_DECK_DISABLE_COMPANION: "1" },
+			env: { ...process.env, NO_COLOR: "1" },
 		});
 		this.child = child;
 
@@ -69,6 +69,7 @@ export class AmpTopSource {
 				}
 			}
 		};
+		child.stdin.end();
 		child.stdout.setEncoding("utf8");
 		child.stderr.setEncoding("utf8");
 		child.stdout.on("data", (chunk: string) => {

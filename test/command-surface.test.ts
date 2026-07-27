@@ -20,7 +20,6 @@ describe("command surface rendering", () => {
 			{
 				label: "REVIEW",
 				detail: "Review <unsafe> now",
-				color: "#F34E3F",
 				dimmed: true,
 				footer: "NO EXECUTOR",
 				icon: "review",
@@ -40,7 +39,6 @@ describe("command surface rendering", () => {
 			{
 				label: "SHIP",
 				detail: "Thread",
-				color: "#F34E3F",
 				footer: "BUSY",
 				loading: true,
 				icon: "ship",
@@ -60,16 +58,14 @@ describe("command surface rendering", () => {
 		for (const svg of [loading, open, feedback]) assert.doesNotMatch(svg, /\{\{|undefined/);
 	});
 
-	it("renders hold progress with black ink instead of the action color", () => {
+	it("renders hold progress with black ink", () => {
 		const holding = renderCommandKeySvg(commandTemplate, {
 			label: "SHIP",
 			detail: "Thread",
-			color: "#F34E3F",
 			icon: "ship",
 			progress: 0.5,
 		});
 
 		assert.match(holding, /width="54" height="6" rx="3" fill="#0B0D0B"/);
-		assert.doesNotMatch(holding, /height="6" rx="3" fill="#F34E3F"/);
 	});
 });

@@ -5,7 +5,6 @@ import { escapeXml, truncateText } from "./text";
 export type CommandKeyOptions = {
 	label: string;
 	detail: string;
-	color: string;
 	dimmed?: boolean;
 	footer?: string;
 	progress?: number;

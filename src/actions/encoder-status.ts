@@ -28,7 +28,7 @@ const clockRefreshIntervalMs = 30_000;
 
 type EncoderAction = DialRotateEvent["action"];
 
-@action({ UUID: "com.daniel-insley.amp-deck.status" })
+@action({ UUID: "com.dinsley.ampdeck.status" })
 export class EncoderStatus extends SingletonAction {
 	private animationTimer: NodeJS.Timeout | undefined;
 	private readonly phaseMetadata = new Map<string, PhaseMetadata>();
@@ -100,10 +100,9 @@ export class EncoderStatus extends SingletonAction {
 		}
 
 		this.store.selectThread(thread.id);
-		await this.renderVisibleActions();
 	}
 
-	override async onDialRotate(ev: DialRotateEvent): Promise<void> {
+	override onDialRotate(ev: DialRotateEvent): void {
 		const candidates = this.getAttentionOrderedThreads();
 		if (candidates.length === 0) {
 			return;
@@ -114,7 +113,6 @@ export class EncoderStatus extends SingletonAction {
 		const nextThreadId = candidates[nextIndex].id;
 		this.focusedThreadId = nextThreadId;
 		this.store.selectThread(nextThreadId);
-		await this.renderVisibleActions();
 	}
 
 	private async reconcileSnapshot(): Promise<void> {
@@ -174,6 +172,12 @@ export class EncoderStatus extends SingletonAction {
 	}
 
 	private async render(action: EncoderAction): Promise<void> {
+		if (this.snapshot.connection !== "live") {
+			return action.setFeedback({
+				canvas: renderEncoderEmptySlice(encoderEmptyTemplate, action.coordinates.column, this.snapshot),
+			});
+		}
+
 		const thread = this.getDisplayedThread();
 		const animationFrame = Math.floor(Date.now() / busyIndicatorFrameDurationMs);
 		if (thread) {

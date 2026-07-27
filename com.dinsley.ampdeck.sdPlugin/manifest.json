@@ -2,11 +2,11 @@
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Amp Deck",
 	"Version": "0.1.0.0",
-	"Author": "Daniel Insley",
+	"Author": "dinsley",
 	"Actions": [
 		{
 			"Name": "Thread Status",
-			"UUID": "com.daniel-insley.amp-deck.status",
+			"UUID": "com.dinsley.ampdeck.status",
 			"Icon": "imgs/actions/status",
 			"Tooltip": "Displays one selected Amp thread across all four Stream Deck+ encoders.",
 			"Controllers": ["Encoder"],
@@ -28,7 +28,7 @@
 		},
 		{
 			"Name": "Open Thread",
-			"UUID": "com.daniel-insley.amp-deck.open-thread",
+			"UUID": "com.dinsley.ampdeck.open-thread",
 			"Icon": "imgs/actions/open-thread",
 			"Tooltip": "Opens the selected Amp thread.",
 			"Controllers": ["Keypad"],
@@ -41,7 +41,7 @@
 		},
 		{
 			"Name": "Show Puck",
-			"UUID": "com.daniel-insley.amp-deck.puck-variation",
+			"UUID": "com.dinsley.ampdeck.show-puck",
 			"Icon": "imgs/actions/puck",
 			"Tooltip": "Shows a Puck; press for next, or hold for a random variation.",
 			"Controllers": ["Keypad"],
@@ -54,7 +54,7 @@
 		},
 		{
 			"Name": "Ship Thread",
-			"UUID": "com.daniel-insley.amp-deck.ship",
+			"UUID": "com.dinsley.ampdeck.ship",
 			"Icon": "imgs/actions/ship",
 			"Tooltip": "Hold for two seconds to request the repository's shipping workflow.",
 			"Controllers": ["Keypad"],
@@ -62,7 +62,7 @@
 		},
 		{
 			"Name": "Archive Thread",
-			"UUID": "com.daniel-insley.amp-deck.archive",
+			"UUID": "com.dinsley.ampdeck.archive",
 			"Icon": "imgs/actions/archive",
 			"Tooltip": "Hold for 1.5 seconds to archive the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
@@ -70,7 +70,7 @@
 		},
 		{
 			"Name": "Review Thread",
-			"UUID": "com.daniel-insley.amp-deck.review-thread",
+			"UUID": "com.dinsley.ampdeck.review-thread",
 			"Icon": "imgs/actions/review",
 			"Tooltip": "Hold for one second to request a review in the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
@@ -99,5 +99,6 @@
 	"Nodejs": {
 		"Version": "24"
 	},
-	"UUID": "com.daniel-insley.amp-deck"
+	"SupportURL": "https://github.com/dinsley/ampdeck",
+	"UUID": "com.dinsley.ampdeck"
 }

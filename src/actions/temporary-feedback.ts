@@ -75,7 +75,15 @@ export class TemporaryFeedback<T> {
 			}
 			throw error;
 		}
-		if (!this.isCurrent(action.id, expectedGeneration) || this.requests.get(action.id) !== request) return;
+		if (!this.isCurrent(action.id, expectedGeneration)) return;
+		if (this.requests.get(action.id) !== request) {
+			try {
+				await restore();
+			} catch (error) {
+				onRestoreError(error);
+			}
+			return;
+		}
 
 		const timer = setTimeout(() => {
 			if (!this.isCurrent(action.id, expectedGeneration) || this.requests.get(action.id) !== request) return;

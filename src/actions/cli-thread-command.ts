@@ -17,7 +17,6 @@ import { TemporaryFeedback } from "./temporary-feedback";
 
 type CliCommandDefinition = {
 	label: string;
-	color: string;
 	icon: "archive" | "review" | "ship";
 	holdMs: number;
 	cooldownMs?: number;
@@ -246,7 +245,6 @@ abstract class CliThreadCommand extends SingletonAction {
 			renderCommandKey({
 				label: this.definition.label,
 				detail: thread?.title ?? "Select thread",
-				color: this.definition.color,
 				dimmed: !keyState.available,
 				footer: keyState.footer,
 				progress: hold ? progress : undefined,
@@ -262,12 +260,11 @@ const reviewPrompt =
 const shipPrompt =
 	"Prepare and carry out the repository's configured shipping workflow for the current changes. Before changing shared state, inspect project guidance and current git state, verify relevant checks, and clearly report the intended destination. Do not force-push, rewrite history, bypass approvals, or guess when the destination or workflow is ambiguous; stop and ask instead.";
 
-@action({ UUID: "com.daniel-insley.amp-deck.archive" })
+@action({ UUID: "com.dinsley.ampdeck.archive" })
 export class ArchiveThread extends CliThreadCommand {
 	constructor(store: ThreadStore) {
 		super(store, {
 			label: "ARCHIVE",
-			color: "#D6A038",
 			icon: "archive",
 			holdMs: 1500,
 			unavailableWhileShipping: true,
@@ -276,12 +273,11 @@ export class ArchiveThread extends CliThreadCommand {
 	}
 }
 
-@action({ UUID: "com.daniel-insley.amp-deck.review-thread" })
+@action({ UUID: "com.dinsley.ampdeck.review-thread" })
 export class ReviewThread extends CliThreadCommand {
 	constructor(store: ThreadStore) {
 		super(store, {
 			label: "REVIEW",
-			color: "#F34E3F",
 			icon: "review",
 			holdMs: 1000,
 			cooldownMs: 10_000,
@@ -294,12 +290,11 @@ export class ReviewThread extends CliThreadCommand {
 	}
 }
 
-@action({ UUID: "com.daniel-insley.amp-deck.ship" })
+@action({ UUID: "com.dinsley.ampdeck.ship" })
 export class ShipThread extends CliThreadCommand {
 	constructor(store: ThreadStore) {
 		super(store, {
 			label: "SHIP",
-			color: "#F34E3F",
 			icon: "ship",
 			holdMs: 2000,
 			successFeedback: "sent",

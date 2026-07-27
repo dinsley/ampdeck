@@ -71,7 +71,7 @@ describe("detached Amp command lifecycle", () => {
 	it("rejects a spawn failure", async () => {
 		await assert.rejects(
 			launchAmpCommand([], "T-one", {
-				command: "/definitely/missing/amp-deck-command",
+				command: "/definitely/missing/ampdeck-command",
 				appendStreamJson: false,
 				timeoutMs: 1_000,
 			}),

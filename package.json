@@ -1,5 +1,5 @@
 {
-	"name": "amp-deck",
+	"name": "ampdeck",
 	"version": "0.1.0",
 	"private": true,
 	"description": "A physical command center for Amp Code on Stream Deck.",
@@ -21,9 +21,9 @@
 		"lint": "eslint . --max-warnings 0",
 		"typecheck": "tsc --noEmit",
 		"test": "tsx --test test/*.test.ts",
-		"validate": "streamdeck validate com.daniel-insley.amp-deck.sdPlugin",
+		"validate": "streamdeck validate com.dinsley.ampdeck.sdPlugin",
 		"check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run validate",
-		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.daniel-insley.amp-deck\""
+		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.dinsley.ampdeck\""
 	},
 	"type": "module",
 	"engines": {
