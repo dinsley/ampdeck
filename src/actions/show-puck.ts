@@ -6,17 +6,17 @@ import streamDeck, {
 	WillAppearEvent,
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { getErrorMessage } from "../error-message";
+import { renderPuckKeyImage } from "../rendering/puck-surface";
 
 type ShowPuckSettings = {
 	puckNumber?: number;
-	/** Migrated from the original eight-variation implementation. */
-	puckIndex?: number;
 };
 
 const puckCount = 138;
-const legacyPuckNumbers = [118, 120, 123, 124, 132, 133, 137, 138] as const;
 const puckNames: Partial<Record<number, string>> = {
 	118: "LAVA LAMP",
 	119: "BUBBLE WRAP",
@@ -57,9 +57,13 @@ export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 		const generation = (this.generations.get(ev.action.id) ?? 0) + 1;
 		this.generations.set(ev.action.id, generation);
 		this.visibleActionIds.add(ev.action.id);
-		const puckNumber = resolvePuckNumber(ev.payload.settings) ?? randomPuckNumber();
+		const puckNumber = validPuckNumber(ev.payload.settings.puckNumber) ?? randomPuckNumber();
 		this.currentNumbers.set(ev.action.id, puckNumber);
-		await Promise.all([ev.action.setSettings({ puckNumber }), ev.action.setImage(puckImage(puckNumber))]);
+		await Promise.all([
+			ev.action.setSettings({ puckNumber }),
+			ev.action.setImage(puckImage(puckNumber)),
+			ev.action.setTitle(""),
+		]);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<ShowPuckSettings>): void {
@@ -67,9 +71,7 @@ export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 		this.visibleActionIds.delete(ev.action.id);
 		this.currentNumbers.delete(ev.action.id);
 		this.pressedAt.delete(ev.action.id);
-		const timer = this.titleTimers.get(ev.action.id);
-		if (timer) clearTimeout(timer);
-		this.titleTimers.delete(ev.action.id);
+		this.clearTitleTimer(ev.action.id);
 	}
 
 	override onKeyDown(ev: KeyDownEvent<ShowPuckSettings>): void {
@@ -82,20 +84,19 @@ export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 
 		const generation = this.generations.get(ev.action.id);
 		if (generation === undefined || !this.visibleActionIds.has(ev.action.id)) return;
-		const currentNumber = this.currentNumbers.get(ev.action.id) ?? resolvePuckNumber(ev.payload.settings);
+		const currentNumber = this.currentNumbers.get(ev.action.id) ?? validPuckNumber(ev.payload.settings.puckNumber);
 		const pressedAt = this.pressedAt.get(ev.action.id);
 		this.pressedAt.delete(ev.action.id);
 		const held = pressedAt !== undefined && performance.now() - pressedAt >= randomHoldMs;
 		const puckNumber = held ? randomPuckNumber(currentNumber) : nextPuckNumber(currentNumber);
 		this.currentNumbers.set(ev.action.id, puckNumber);
+		this.clearTitleTimer(ev.action.id);
 		await Promise.all([
 			ev.action.setSettings({ puckNumber }),
 			ev.action.setImage(puckImage(puckNumber)),
 			ev.action.setTitle(`#${puckNumber.toString().padStart(2, "0")}\n${puckNames[puckNumber] ?? "PUCK"}`),
 		]);
 		if (!this.visibleActionIds.has(ev.action.id) || this.generations.get(ev.action.id) !== generation) return;
-		const previousTimer = this.titleTimers.get(ev.action.id);
-		if (previousTimer) clearTimeout(previousTimer);
 		const timer = setTimeout(() => {
 			this.titleTimers.delete(ev.action.id);
 			void ev.action.setTitle("").catch((error) => {
@@ -105,24 +106,22 @@ export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 		timer.unref();
 		this.titleTimers.set(ev.action.id, timer);
 	}
+
+	private clearTitleTimer(actionId: string): void {
+		const timer = this.titleTimers.get(actionId);
+		if (timer) clearTimeout(timer);
+		this.titleTimers.delete(actionId);
+	}
 }
 
-function resolvePuckNumber(settings: ShowPuckSettings): number | undefined {
-	if (isPuckNumber(settings.puckNumber)) return settings.puckNumber;
-	if (isLegacyPuckIndex(settings.puckIndex)) return legacyPuckNumbers[settings.puckIndex];
-	return undefined;
-}
-
-function isPuckNumber(value: number | undefined): value is number {
-	return Number.isInteger(value) && value !== undefined && value >= 1 && value <= puckCount;
-}
-
-function isLegacyPuckIndex(value: number | undefined): value is number {
-	return Number.isInteger(value) && value !== undefined && value >= 0 && value < legacyPuckNumbers.length;
+function validPuckNumber(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= puckCount ? value : undefined;
 }
 
 function puckImage(number: number): string {
-	return `imgs/pucks/puck-${number.toString().padStart(3, "0")}.png`;
+	const fileName = `puck-${number.toString().padStart(3, "0")}.png`;
+	const pngBase64 = readFileSync(join(process.cwd(), "imgs", "pucks", fileName)).toString("base64");
+	return renderPuckKeyImage(pngBase64);
 }
 
 function randomPuckNumber(excluding?: number): number {

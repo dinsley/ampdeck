@@ -20,19 +20,17 @@ import {
 	type DisplayModel,
 	type PhaseMetadata,
 } from "../model/thread-status";
+import { busyIndicatorFrameDurationMs } from "../rendering/busy-indicator";
 import { renderEncoderEmptySlice, renderEncoderFocusSlice } from "../rendering/encoder-surface";
 import { ThreadStore } from "../state/thread-store";
 
-const animationIntervalMs = 250;
 const clockRefreshIntervalMs = 30_000;
-const focusLayout = "layouts/encoder-focus.json";
 
 type EncoderAction = DialRotateEvent["action"];
 
 @action({ UUID: "com.daniel-insley.amp-deck.status" })
 export class EncoderStatus extends SingletonAction {
 	private animationTimer: NodeJS.Timeout | undefined;
-	private readonly focusedLayoutActionIds = new Set<string>();
 	private readonly phaseMetadata = new Map<string, PhaseMetadata>();
 	private readonly visibleActionIds = new Set<string>();
 	private clockRefreshBucket = Math.floor(Date.now() / clockRefreshIntervalMs);
@@ -60,7 +58,7 @@ export class EncoderStatus extends SingletonAction {
 			void this.refreshDynamicActions().catch((error) => {
 				streamDeck.logger.error(`Unable to refresh thread status: ${getErrorMessage(error)}`);
 			});
-		}, animationIntervalMs);
+		}, busyIndicatorFrameDurationMs);
 		this.animationTimer.unref();
 		this.releaseStore ??= this.store.acquire();
 		this.ensureFocusedThread();
@@ -68,7 +66,6 @@ export class EncoderStatus extends SingletonAction {
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent): void {
-		this.focusedLayoutActionIds.delete(ev.action.id);
 		this.visibleActionIds.delete(ev.action.id);
 		if (this.visibleActionIds.size === 0) {
 			if (this.animationTimer) clearInterval(this.animationTimer);
@@ -178,11 +175,7 @@ export class EncoderStatus extends SingletonAction {
 
 	private async render(action: EncoderAction): Promise<void> {
 		const thread = this.getDisplayedThread();
-		const animationFrame = Math.floor(Date.now() / animationIntervalMs);
-		if (!this.focusedLayoutActionIds.has(action.id)) {
-			await action.setFeedbackLayout(focusLayout);
-			this.focusedLayoutActionIds.add(action.id);
-		}
+		const animationFrame = Math.floor(Date.now() / busyIndicatorFrameDurationMs);
 		if (thread) {
 			return this.renderFocused(action, thread, getDisplayModel(thread), animationFrame);
 		}

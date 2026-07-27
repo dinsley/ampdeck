@@ -7,11 +7,11 @@
 		{
 			"Name": "Thread Status",
 			"UUID": "com.daniel-insley.amp-deck.status",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/status",
 			"Tooltip": "Displays one selected Amp thread across all four Stream Deck+ encoders.",
 			"Controllers": ["Encoder"],
 			"Encoder": {
-				"layout": "layouts/encoder-status.json",
+				"layout": "layouts/encoder-focus.json",
 				"TriggerDescription": {
 					"Push": "Select the visible thread",
 					"Rotate": "Select a different Amp thread",
@@ -21,7 +21,7 @@
 			},
 			"States": [
 				{
-					"Image": "imgs/actions/counter/key",
+					"Image": "imgs/actions/common/key",
 					"TitleAlignment": "middle"
 				}
 			]
@@ -29,12 +29,12 @@
 		{
 			"Name": "Open Thread",
 			"UUID": "com.daniel-insley.amp-deck.open-thread",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/open-thread",
 			"Tooltip": "Opens the selected Amp thread.",
 			"Controllers": ["Keypad"],
 			"States": [
 				{
-					"Image": "imgs/actions/counter/key",
+					"Image": "imgs/actions/common/key",
 					"TitleAlignment": "middle"
 				}
 			]
@@ -42,12 +42,12 @@
 		{
 			"Name": "Show Puck",
 			"UUID": "com.daniel-insley.amp-deck.puck-variation",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/puck",
 			"Tooltip": "Shows a Puck; press for next, or hold for a random variation.",
 			"Controllers": ["Keypad"],
 			"States": [
 				{
-					"Image": "imgs/actions/counter/key",
+					"Image": "imgs/actions/common/key",
 					"TitleAlignment": "middle"
 				}
 			]
@@ -55,26 +55,26 @@
 		{
 			"Name": "Ship Thread",
 			"UUID": "com.daniel-insley.amp-deck.ship",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/ship",
 			"Tooltip": "Hold for two seconds to request the repository's shipping workflow.",
 			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		},
 		{
 			"Name": "Archive Thread",
 			"UUID": "com.daniel-insley.amp-deck.archive",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/archive",
 			"Tooltip": "Hold for 1.5 seconds to archive the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		},
 		{
 			"Name": "Review Thread",
 			"UUID": "com.daniel-insley.amp-deck.review-thread",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/review",
 			"Tooltip": "Hold for one second to request a review in the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/counter/key", "TitleAlignment": "middle" }]
+			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		}
 	],
 	"Category": "Amp Deck",

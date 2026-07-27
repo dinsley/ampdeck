@@ -9,9 +9,10 @@ import streamDeck, {
 
 import { launchAmpCommand, runAmpCommand } from "../amp/amp-command";
 import { getErrorMessage } from "../error-message";
+import { busyIndicatorFrameDurationMs } from "../rendering/busy-indicator";
 import { renderCommandFeedback, renderCommandKey, type CommandFeedbackKind } from "../rendering/command-key";
 import { ThreadStore } from "../state/thread-store";
-import { evaluateCommandHold } from "./command-hold-model";
+import { evaluateCommandHold, getCommandKeyState } from "./command-model";
 import { TemporaryFeedback } from "./temporary-feedback";
 
 type CliCommandDefinition = {
@@ -56,7 +57,6 @@ abstract class CliThreadCommand extends SingletonAction {
 		if (!ev.action.isKey()) return;
 		this.feedback.appear(ev.action.id);
 		this.releaseStore ??= this.store.acquire();
-		this.ensureAnimationTimer();
 		await this.render(ev.action);
 	}
 
@@ -64,8 +64,7 @@ abstract class CliThreadCommand extends SingletonAction {
 		this.clearHold(ev.action.id);
 		this.feedback.disappear(ev.action.id);
 		if (this.feedback.visibleCount === 0) {
-			if (this.animationTimer) clearInterval(this.animationTimer);
-			this.animationTimer = undefined;
+			this.stopAnimationTimer();
 			this.releaseStore?.();
 			this.releaseStore = undefined;
 		}
@@ -118,6 +117,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			return;
 		}
 		this.inFlightActionIds.add(action.id);
+		this.ensureAnimationTimer();
 		const appearanceGeneration = this.feedback.generation(action.id);
 		let result: CommandFeedbackKind = this.definition.successFeedback ?? "success";
 		let commandAccepted = false;
@@ -135,6 +135,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			result = "error";
 		} finally {
 			this.inFlightActionIds.delete(action.id);
+			if (this.inFlightActionIds.size === 0) this.stopAnimationTimer();
 			this.store.releaseThreadAction(threadId, commandAccepted ? (this.definition.cooldownMs ?? 0) : 0);
 		}
 		await this.showFeedback(action, result, appearanceGeneration);
@@ -207,17 +208,16 @@ abstract class CliThreadCommand extends SingletonAction {
 
 	private ensureAnimationTimer(): void {
 		this.animationTimer ??= setInterval(() => {
-			if (
-				this.store.selectedThread &&
-				(this.store.selectedThread.working ||
-					this.store.snapshot.connection !== "live" ||
-					this.inFlightActionIds.size > 0 ||
-					this.store.isThreadActionBlocked(this.store.selectedThread.id))
-			) {
+			if (this.inFlightActionIds.size > 0) {
 				logBackgroundError(this.renderVisibleActions(), `animate ${this.definition.label} action`);
 			}
-		}, 200);
+		}, busyIndicatorFrameDurationMs);
 		this.animationTimer.unref();
+	}
+
+	private stopAnimationTimer(): void {
+		if (this.animationTimer) clearInterval(this.animationTimer);
+		this.animationTimer = undefined;
 	}
 
 	private render(action: KeyDownEvent["action"]): Promise<void> {
@@ -229,42 +229,28 @@ abstract class CliThreadCommand extends SingletonAction {
 		const blocked = Boolean(thread && this.store.isThreadActionBlocked(thread.id));
 		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
 		const missingExecutor = this.definition.requiresConnectedExecutor && !thread?.executorConnected;
-		const loading = Boolean(
-			thread &&
-			(thread.working || this.store.snapshot.connection === "connecting" || inFlight || threadInFlight || blocked),
-		);
-		const available = Boolean(
-			thread &&
-			!thread.working &&
-			!unavailable &&
-			!missingExecutor &&
-			this.store.snapshot.connection === "live" &&
-			!inFlight &&
-			!blocked,
-		);
+		const keyState = getCommandKeyState({
+			connection: this.store.snapshot.connection,
+			hasThread: Boolean(thread),
+			working: thread?.working ?? false,
+			shipping: unavailable ?? false,
+			actionInFlight: inFlight,
+			threadInFlight,
+			blocked,
+			missingExecutor: missingExecutor ?? false,
+		});
 		const hold = this.holds.get(action.id);
 		const progress = hold ? Math.min(1, (performance.now() - hold.startedAt) / this.definition.holdMs) : 0;
-		const footer = unavailable
-			? "SHIPPING"
-			: thread?.working
-				? ""
-				: inFlight || threadInFlight
-					? "BUSY"
-					: blocked
-						? "SENT"
-						: available
-							? ""
-							: "UNAVAILABLE";
 
 		return action.setImage(
 			renderCommandKey({
 				label: this.definition.label,
 				detail: thread?.title ?? "Select thread",
 				color: this.definition.color,
-				dimmed: !available,
-				footer,
+				dimmed: !keyState.available,
+				footer: keyState.footer,
 				progress: hold ? progress : undefined,
-				loading,
+				loading: keyState.loading,
 				icon: this.definition.icon,
 			}),
 		);

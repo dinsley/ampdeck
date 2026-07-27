@@ -90,12 +90,16 @@ export function formatCompactRelativeTime(updatedAt: string | undefined, now = D
 	const elapsedSeconds = Math.max(0, Math.floor((now - Date.parse(updatedAt)) / 1000));
 	if (!Number.isFinite(elapsedSeconds)) return "UNKNOWN";
 	if (elapsedSeconds < 5) return "NOW";
-	if (elapsedSeconds < 60) return `${elapsedSeconds}s`;
+	if (elapsedSeconds < 60) return `${padTwoDigits(elapsedSeconds)}s`;
 	const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-	if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+	if (elapsedMinutes < 60) return `${padTwoDigits(elapsedMinutes)}m`;
 	const elapsedHours = Math.floor(elapsedMinutes / 60);
-	if (elapsedHours < 24) return `${elapsedHours}h`;
-	return `${Math.floor(elapsedHours / 24)}d`;
+	if (elapsedHours < 24) return `${padTwoDigits(elapsedHours)}h`;
+	return `${padTwoDigits(Math.floor(elapsedHours / 24))}d`;
+}
+
+function padTwoDigits(value: number): string {
+	return value.toString().padStart(2, "0");
 }
 
 function attentionRank(thread: AmpTopThread): number {

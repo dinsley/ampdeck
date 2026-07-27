@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { evaluateCommandHold } from "../src/actions/command-hold-model.ts";
+import { evaluateCommandHold, getCommandKeyState } from "../src/actions/command-model.ts";
 import { TemporaryFeedback } from "../src/actions/temporary-feedback.ts";
 
 describe("command hold state", () => {
@@ -15,6 +15,48 @@ describe("command hold state", () => {
 	it("invalidates immediately when the selected target changes", () => {
 		assert.equal(evaluateCommandHold(hold, "T-two", 4, 1_000, 200), "invalidated");
 		assert.equal(evaluateCommandHold(hold, "T-one", 5, 1_000, 200), "invalidated");
+	});
+});
+
+describe("command key state", () => {
+	const availableInput = {
+		connection: "live" as const,
+		hasThread: true,
+		working: false,
+		shipping: false,
+		actionInFlight: false,
+		threadInFlight: false,
+		blocked: false,
+		missingExecutor: false,
+	};
+
+	it("keeps the action identity visible while explaining unavailable states", () => {
+		assert.deepEqual(getCommandKeyState({ ...availableInput, working: true }), {
+			available: false,
+			footer: "WORKING",
+			loading: false,
+		});
+		assert.equal(getCommandKeyState({ ...availableInput, missingExecutor: true }).footer, "NO EXECUTOR");
+		assert.equal(getCommandKeyState({ ...availableInput, hasThread: false }).footer, "SELECT THREAD");
+		assert.equal(getCommandKeyState({ ...availableInput, connection: "offline" }).footer, "OFFLINE");
+	});
+
+	it("animates only the command actively being dispatched", () => {
+		assert.deepEqual(getCommandKeyState({ ...availableInput, actionInFlight: true }), {
+			available: false,
+			footer: "BUSY",
+			loading: true,
+		});
+		assert.deepEqual(getCommandKeyState({ ...availableInput, threadInFlight: true }), {
+			available: false,
+			footer: "BUSY",
+			loading: false,
+		});
+		assert.deepEqual(getCommandKeyState(availableInput), {
+			available: true,
+			footer: "",
+			loading: false,
+		});
 	});
 });
 

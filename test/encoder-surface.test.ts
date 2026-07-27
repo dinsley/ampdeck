@@ -15,7 +15,7 @@ describe("encoder surface rendering", () => {
 		const thread = createThread({
 			project: "ampdeck",
 			title: "AmpDeck code review",
-			updatedAt: new Date(now - 2 * 60 * 60_000).toISOString(),
+			updatedAt: new Date(now - 14 * 60_000).toISOString(),
 			usageCost: "$0.97",
 		});
 		const svg = renderEncoderFocusSurfaceSvg(focusTemplate, {
@@ -27,10 +27,12 @@ describe("encoder surface rendering", () => {
 			now,
 		});
 
-		assert.match(svg, />UPDATED<\/text>/);
-		assert.match(svg, />2h<\/text>/);
-		assert.match(svg, />COST<\/text>/);
-		assert.match(svg, />\$0\.97<\/text>/);
+		assert.match(svg, /<text x="407" y="84"[^>]*>UPDATED<\/text>/);
+		assert.match(svg, /<text x="464" y="84"[^>]*>14m<\/text>/);
+		assert.match(svg, /<line x1="501" y1="74" x2="501" y2="86"/);
+		assert.match(svg, /<text x="514" y="84"[^>]*>COST<\/text>/);
+		assert.match(svg, /<text x="549" y="84"[^>]*>\$0\.97<\/text>/);
+		assert.match(svg, /x1="600" y1="0" x2="600" y2="100" stroke="#C8D0C8" stroke-width="1\.5"/);
 		assert.doesNotMatch(svg, /\{\{|undefined/);
 	});
 
@@ -51,7 +53,42 @@ describe("encoder surface rendering", () => {
 		assert.match(focused, /&lt;PROJECT&gt;/);
 		assert.match(focused, /Review &lt;this&gt; &amp; &quot;that&quot;/);
 		assert.match(empty, /AMP CLI OFFLINE/);
+		assert.match(empty, /Retrying automatically · check amp top/);
 		assert.doesNotMatch(empty, /\{\{|undefined/);
+	});
+
+	it("bounds long project names and labels executor availability clearly", () => {
+		const thread = createThread({
+			project: "a".repeat(100),
+			executorConnected: true,
+		});
+		const focused = renderEncoderFocusSurfaceSvg(focusTemplate, {
+			thread,
+			model: getDisplayModel(thread),
+			animationFrame: 0,
+			position: "1/1",
+			now,
+		});
+
+		assert.match(focused, new RegExp(`${"A".repeat(63)}…`));
+		assert.match(focused, />EXECUTOR CONNECTED<\/text>/);
+		assert.doesNotMatch(focused, new RegExp("A".repeat(65)));
+	});
+
+	it("uses the black morphing-dot indicator for working and shipping activity", () => {
+		const thread = createThread({ working: true, executorConnected: true });
+		const focused = renderEncoderFocusSurfaceSvg(focusTemplate, {
+			thread,
+			model: getDisplayModel(thread),
+			animationFrame: 8,
+			position: "1/1",
+			now,
+		});
+
+		assert.match(focused, /data-busy-indicator="morphing-dots"/);
+		assert.match(focused, /data-busy-frame="8"/);
+		assert.match(focused, /fill="#0B0D0B"/);
+		assert.doesNotMatch(focused, /stroke-dasharray/);
 	});
 });
 

@@ -7,21 +7,22 @@ import {
 	type VisualStatus,
 } from "../model/thread-status";
 import type { AmpTopSnapshot, AmpTopThread } from "../amp/amp-top-model";
+import { renderBusyIndicator } from "./busy-indicator";
 import { renderSvgTemplate, svgDataUrl } from "./svg-template";
 import { escapeXml, splitGraphemes, truncateText } from "./text";
 
-const animationIntervalMs = 250;
 const surfaceColor = "#FEF3C7";
 const inkColor = "#0B0D0B";
 const strongTextColor = "#27251D";
 const mutedTextColor = "#665F45";
 const borderColor = "#D8C98F";
+const statusBorderColor = "#C8D0C8";
 
 const statusColors: Record<VisualStatus, string> = {
-	idle: "#665F45",
-	running: "#A65300",
-	shipping: "#7651A8",
-	done: "#257A4D",
+	idle: "#52606D",
+	running: "#286986",
+	shipping: "#A64732",
+	done: "#26734D",
 };
 
 export type EncoderFocusSurfaceInput = {
@@ -54,7 +55,7 @@ export function renderEncoderEmptySurfaceSvg(template: string, snapshot: AmpTopS
 
 function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput, viewBox: string): string {
 	const now = input.now ?? Date.now();
-	const project = escapeXml((input.thread.project ?? "Amp thread").toUpperCase());
+	const project = escapeXml(truncateText((input.thread.project ?? "Amp thread").toUpperCase(), 64));
 	const position = escapeXml(input.position);
 	const status = escapeXml(input.model.status);
 	const statusColor = statusColors[input.model.visualStatus];
@@ -73,13 +74,17 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 			: `<text x="18" y="40" fill="${inkColor}" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[0])}</text>
 			<text x="18" y="61" fill="${inkColor}" font-size="${titleFontSize}" font-weight="700">${escapeXml(titleLines[1])}</text>`;
 	const phaseDuration = escapeXml(formatCompactDuration(now - (input.phase?.startedAt ?? now)));
-	const spinnerRotation = ((input.animationFrame * animationIntervalMs) / 2600) * 360;
 	const activity =
 		input.model.visualStatus === "running" || input.model.visualStatus === "shipping"
-			? `<g transform="rotate(${spinnerRotation} 624 50)" opacity=".6">
-			<circle cx="624" cy="50" r="6" fill="none" stroke="${statusColor}" stroke-opacity=".18" stroke-width="1.7"/>
-			<circle cx="624" cy="50" r="6" fill="none" stroke="${statusColor}" stroke-width="1.7" stroke-linecap="round" stroke-dasharray="23 15"/>
-		</g>`
+			? renderBusyIndicator({
+					centerX: 624,
+					centerY: 50,
+					frame: input.animationFrame,
+					dotRadius: 1.35,
+					gap: 4.6,
+					color: inkColor,
+					opacity: 0.82,
+				})
 			: `<circle cx="624" cy="50" r="3.5" fill="${statusColor}"/>`;
 
 	return renderSvgTemplate(template, {
@@ -97,6 +102,7 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 		updated,
 		usage,
 		borderColor,
+		statusBorderColor,
 		phaseDuration,
 		activity,
 		statusColor,
@@ -114,9 +120,11 @@ function renderEncoderEmptySvg(template: string, snapshot: AmpTopSnapshot, viewB
 				? "CONNECTING TO AMP"
 				: "NO ACTIVE THREADS";
 	const detail =
-		snapshot.connection !== "live"
-			? "Thread inventory will reconnect automatically"
-			: "Waiting for an unarchived thread";
+		snapshot.connection === "offline"
+			? "Retrying automatically · check amp top"
+			: snapshot.connection === "connecting"
+				? "Starting live thread inventory"
+				: "Waiting for an unarchived thread";
 	return renderSvgTemplate(template, {
 		viewBox,
 		surfaceColor,
@@ -129,14 +137,14 @@ function renderEncoderEmptySvg(template: string, snapshot: AmpTopSnapshot, viewB
 }
 
 function getActivityDetail(model: DisplayModel): string {
-	if (model.status === "SHIPPING") return "Changes workflow in progress";
+	if (model.status === "SHIPPING") return "Shipping workflow in progress";
 	if (model.status === "WORKING") return "Planning or executing next step";
 	if (model.status === "DONE") return "Task turn completed";
 	return "Ready for another command";
 }
 
 function getExecutorLabel(thread: AmpTopThread): string {
-	return thread.executorConnected ? "ORB" : "NO ACTIVE EXECUTOR";
+	return thread.executorConnected ? "EXECUTOR CONNECTED" : "NO ACTIVE EXECUTOR";
 }
 
 function renderExecutorGlyph(connected: boolean, color: string): string {

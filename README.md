@@ -1,39 +1,39 @@
 # Amp Deck
 
-Amp Deck turns a Stream Deck into a compact command center for [Amp](https://ampcode.com/). Follow active threads from the Stream Deck+ touch strip, choose the thread you want to control, open it in a browser, and send guarded review, shipping, or archive commands without leaving your desk.
+Amp Deck puts your active [Amp](https://ampcode.com/) threads on a Stream Deck+. Choose a thread from the touch strip, see whether it is working or ready, open it in your browser, and send common follow-up commands without returning to the terminal.
+
+![Recommended Amp Deck layout on Stream Deck+](./docs/images/recommended-layout.png)
 
 > [!NOTE]
-> Amp Deck is currently an early, source-distributed release. This repository does not currently include packaged release downloads.
+> Amp Deck is an early, source-distributed release. There is no packaged download yet, so installation currently requires a local build.
 
-## What it does
+## What you can do
 
-- Shows unarchived Amp threads and their live state on the four Stream Deck+ encoders.
-- Prioritizes shipping and working threads while keeping every visible thread in reach.
-- Shares one selected thread across the status display and all thread command keys.
-- Displays the selected thread's project, title, activity, executor state, last update, and usage cost when available.
-- Adds deliberate hold-to-confirm controls for review, shipping, and archive operations.
-- Includes an optional Show Puck key with 138 bundled variations.
+- See all unarchived threads and their live state on the Stream Deck+ touch strip.
+- Rotate any encoder to choose a thread; all Amp Deck keys follow the same selection.
+- Open the selected thread in your default browser.
+- Ask the selected thread to review changes or run its repository's shipping workflow.
+- Archive a finished thread.
+- Use hold-to-confirm for commands that can change code or thread state.
+- Optionally add a Show Puck key with 138 bundled variations.
 
-Amp Deck reads thread data and sends commands through the Amp CLI running under your desktop user account. There is no separate Amp Deck account, token field, or pairing service.
+Amp Deck talks to the Amp CLI already installed on your computer. It does not need a separate account, API key, token, or pairing step.
 
-## Requirements
+## Before you start
 
-### To use the plugin
+You will need:
 
-- A **Stream Deck+** for the four-encoder Thread Status display. Keypad actions can also be placed on Stream Deck devices with keys.
-- **Stream Deck 7.1 or newer**.
-- **macOS 12 or newer**, or **Windows 10 or newer**.
-- A current [Amp CLI](https://ampcode.com/manual) installation, signed in to your Amp account.
-- At least one unarchived Amp thread to display.
+- a **Stream Deck+** for the complete four-encoder status display;
+- **Stream Deck 7.1 or newer**;
+- **macOS 12 or newer**, or **Windows 10 or newer**;
+- the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account; and
+- **Node.js 24 or newer** while building this source release.
 
-### To build from source
-
-- **Node.js 24 or newer**.
-- npm (included with Node.js).
+Key actions such as Open, Review, Ship, Archive, and Show Puck also work on Stream Deck devices without encoders. Selecting threads and viewing the complete status surface require Stream Deck+.
 
 ## Install from source
 
-Until packaged releases are available, link a local build into Stream Deck:
+Clone the project, install its dependencies, build it, and link it to Stream Deck:
 
 ```shell
 git clone https://github.com/dinsley/ampdeck.git
@@ -43,7 +43,7 @@ npm run build
 npx streamdeck link com.daniel-insley.amp-deck.sdPlugin
 ```
 
-The link command registers the plugin directory with the Stream Deck app. If Amp Deck does not appear immediately, restart the Stream Deck app or run:
+If Amp Deck does not appear in the Stream Deck action list, restart the plugin:
 
 ```shell
 npx streamdeck restart com.daniel-insley.amp-deck
@@ -55,72 +55,84 @@ To remove the development link later:
 npx streamdeck unlink com.daniel-insley.amp-deck
 ```
 
-## Connect Amp
+## Set up your Stream Deck
 
-Amp Deck uses the same local credentials as the Amp CLI, so setup is simply:
-
-1. Install Amp and make sure the `amp` command is available.
-2. Sign in from a terminal:
+1. Sign in to Amp and verify that it can list your threads:
 
    ```shell
    amp login
-   ```
-
-3. Confirm that Amp can see your threads:
-
-   ```shell
    amp top
    ```
 
-4. Open Stream Deck, find **Amp Deck** in the action list, and add the actions you want to a profile.
-5. For the complete status surface, place **Thread Status** in **all four Stream Deck+ encoder slots** on the same page. Each encoder renders its slice of one continuous display.
+2. Open the Stream Deck app and find **Amp Deck** in the action list.
+3. Add **Thread Status** to all four encoder slots on one Stream Deck+ page. The four slots join into one continuous display.
+4. Add **Open Thread**, **Review Thread**, **Ship Thread**, and **Archive Thread** to the keys above the display.
+5. Rotate any encoder to choose a thread. The title shown on each command key updates with the shared selection.
 
-No additional device-to-Amp pairing is required. Amp Deck first looks for the standard Amp installation at `~/.amp/bin/amp` (or `~/.amp/bin/amp.exe` on Windows), then falls back to `amp` on the Stream Deck app's `PATH`.
+Amp Deck looks for the standard Amp installation at `~/.amp/bin/amp` (`~/.amp/bin/amp.exe` on Windows), then falls back to the `amp` command available to the Stream Deck app.
 
-## Actions and controls
+## Use the plugin
 
-All thread controls target the thread selected on the **Thread Status** action. Thread commands are intentionally unavailable while the selected thread is actively working or while the live Amp connection is offline.
+### Choose and open a thread
 
-| Action             | Device control                 | Behavior                                                                                                                                                                                                                                   |
-| ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Thread Status**  | Rotate an encoder              | Move through unarchived threads and select the newly displayed thread. Threads are ordered by attention: shipping first, then working, then the rest.                                                                                      |
-| **Thread Status**  | Press an encoder               | Select the thread currently shown.                                                                                                                                                                                                         |
-| **Thread Status**  | Tap the touch strip            | Keep the displayed thread selected.                                                                                                                                                                                                        |
-| **Thread Status**  | Long-press the touch strip     | Open the displayed thread on `ampcode.com`.                                                                                                                                                                                                |
-| **Open Thread**    | Press the key                  | Open the selected thread in the default browser.                                                                                                                                                                                           |
-| **Review Thread**  | Hold for 1 second              | Continue the selected thread with a focused request to review current changes, fix high-confidence issues, and report risks. Requires a connected executor; a 10-second shared cooldown prevents accidental or conflicting commands.       |
-| **Ship Thread**    | Hold for 2 seconds             | Continue the selected thread with a guarded request to run the repository's configured shipping workflow. Requires a connected executor; the command adds the permanent `shipping` label while Amp Deck tracks active shipping separately. |
-| **Archive Thread** | Hold for 1.5 seconds           | Archive the selected thread through the Amp CLI.                                                                                                                                                                                           |
-| **Show Puck**      | Press the key                  | Advance to the next bundled variation.                                                                                                                                                                                                     |
-| **Show Puck**      | Hold for at least 0.75 seconds | Choose a different bundled variation at random.                                                                                                                                                                                            |
+The Thread Status display is the center of the plugin:
 
-The command keys show hold progress and brief success, sent, unavailable, or error feedback. Releasing a command key before its hold completes cancels the operation.
+| Control                    | What it does                                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Rotate any encoder         | Browse unarchived threads and select the thread now on screen. Shipping and working threads appear first. |
+| Press any encoder          | Keep the visible thread selected.                                                                         |
+| Tap the touch strip        | Keep the visible thread selected.                                                                         |
+| Long-press the touch strip | Open the visible thread on `ampcode.com`.                                                                 |
+| Press **Open Thread**      | Open the selected thread in your default browser.                                                         |
 
-### Reading Thread Status
+### Run a thread action
 
-The touch-strip display reports one of four primary states:
+Review, Ship, and Archive are deliberately harder to trigger by accident. Hold the key until its progress bar completes; releasing early cancels the action.
 
-- **WORKING** — Amp is actively processing the thread.
+| Action             |                Hold time | What it asks Amp to do                                                              |
+| ------------------ | -----------------------: | ----------------------------------------------------------------------------------- |
+| **Review Thread**  |                 1 second | Review the current changes, fix high-confidence issues, and report remaining risks. |
+| **Ship Thread**    |                2 seconds | Follow the repository's configured shipping workflow with guarded instructions.     |
+| **Archive Thread** |              1.5 seconds | Archive the selected thread through the Amp CLI.                                    |
+| **Show Puck**      | Press / 0.75-second hold | Show the next bundled variation, or choose a random one after a hold.               |
+
+Review and Ship require a connected executor and use a shared 10-second cooldown. Thread commands are disabled while the selected thread is working, shipping, offline, or already accepting another command.
+
+## Understand the thread states
+
+![Idle, Working, Shipping, and Done thread states](./docs/images/thread-states.png)
+
 - **IDLE** — a live executor is connected and ready for another command.
-- **DONE** — the current turn completed and no live executor is connected.
-- **SHIPPING** — a shipping command was just accepted or a labeled shipping workflow is actively working. The permanent label alone does not leave a completed thread in this state.
+- **WORKING** — Amp is actively planning or using tools in the thread.
+- **SHIPPING** — a shipping command was accepted and its workflow is active.
+- **DONE** — the current turn finished and no live executor is connected.
 
-The display also shows the thread's position in the attention-ordered list, elapsed time in the current state, relative update time, executor availability, and selected-thread usage cost. Usage is supplementary; the rest of the controls continue to work if cost data cannot be loaded.
+The display also shows the thread's project, title, place in the attention-ordered list, time in the current state, latest update, executor availability, and usage cost when available. Missing cost data does not disable the rest of the plugin.
 
-## Suggested layout
+## Understand action feedback
 
-On a Stream Deck+ page:
+![Ready, holding, busy, sent, unavailable, and error action states](./docs/images/action-feedback.png)
 
-1. Fill all four encoder slots with **Thread Status**.
-2. Put **Open Thread**, **Review Thread**, **Ship Thread**, and **Archive Thread** on keys above the display.
-3. Rotate any encoder to choose a thread. The key labels update to reflect that shared selection.
-4. Check the selected title before holding a command key. Changing the selection while holding cancels the command.
+- A progress bar means the key is waiting for the hold to complete.
+- **BUSY** means the request is being sent or another command is still cooling down.
+- **SENT** means Amp accepted a Review or Ship request. The work may continue in the thread.
+- **DONE** means a local action such as Open or Archive completed.
+- **UNAVAILABLE** means the action is not safe to run in the current thread state.
+- **ERROR** means the immediate action failed; check the Amp thread and plugin log before trying again.
+
+Changing the selected thread while holding a command cancels the command.
+
+## Show Puck
+
+![Four examples from the bundled Puck gallery](./docs/images/puck-gallery.png)
+
+Show Puck is an optional key for adding a little personality to your Stream Deck. Press it to advance to the next variation, or hold it for 0.75 seconds to choose a different variation at random. The key briefly displays the variation's number and name.
 
 ## Troubleshooting
 
-### The display says `AMP CLI OFFLINE` or keeps reconnecting
+### The display says `AMP CLI OFFLINE`
 
-Run `amp top` in a terminal. If it cannot connect, update or sign in to Amp and try again:
+Check Amp from a terminal:
 
 ```shell
 amp update
@@ -128,7 +140,7 @@ amp login
 amp top
 ```
 
-Amp Deck retries the status stream automatically every few seconds. If `amp top` works but the plugin remains offline, restart Amp Deck from the repository:
+Amp Deck reconnects automatically every few seconds. If `amp top` works but the display remains offline, restart the plugin:
 
 ```shell
 npx streamdeck restart com.daniel-insley.amp-deck
@@ -136,45 +148,39 @@ npx streamdeck restart com.daniel-insley.amp-deck
 
 ### The display says `NO ACTIVE THREADS`
 
-Amp is connected, but there are no unarchived threads in the live inventory. Create or unarchive a thread, then allow the display a moment to refresh.
+Amp is connected, but it cannot find an unarchived thread. Create or unarchive a thread, then give the display a moment to refresh.
 
-### A command key says `UNAVAILABLE`
+### A command says `UNAVAILABLE`
 
-Make sure:
+Check that:
 
 - a thread is selected;
-- the Amp connection is live;
-- the selected thread is not currently working;
-- for **Review Thread** and **Ship Thread**, that Amp reports a connected executor; and
-- the thread is not actively shipping.
-
-Commands also stay unavailable briefly while a previous request is being sent or cooling down.
+- Amp is online;
+- the thread is not currently working or shipping;
+- Review and Ship have a connected executor; and
+- another command is not still being sent or cooling down.
 
 ### Amp works in a terminal but not in Stream Deck
 
-Desktop apps can inherit a different `PATH` from terminal shells. The standard `~/.amp/bin/amp` installation is detected directly. If Amp is installed elsewhere, make it available to GUI applications or reinstall it in the standard location, then restart Stream Deck.
-
-### A command shows an error alert
-
-Try the equivalent operation in the Amp CLI to expose authentication, permissions, or connectivity errors. Review and Ship continue a thread in detached execute mode, so any repository approvals or clarification requests appear in that Amp thread rather than in Stream Deck.
-
-Amp Deck waits for Amp's streamed user-message acknowledgement before showing `SENT`. An accepted command can still fail later; those nonzero exits are recorded in the plugin log.
+Desktop apps can have a different `PATH` from your terminal. Amp Deck detects the standard `~/.amp/bin/amp` installation directly. If Amp is installed elsewhere, make it available to desktop applications or reinstall it in the standard location, then restart Stream Deck.
 
 ### Review or Ship is unavailable on a completed local thread
 
-`amp threads continue <id>` does not restore the original checkout when a local thread's executor has disconnected: it uses the caller's current directory, and the CLI has no supported project or working-directory override. A packaged Stream Deck plugin therefore cannot safely continue that thread without risking work in the wrong repository. Amp Deck fails closed by requiring an executor that Amp already reports as connected. Reconnect the original runner or continue the thread from a terminal in the intended checkout. Archive remains available because it is a server-side thread operation and does not execute repository tools.
+The Amp CLI cannot safely restore a disconnected local thread's original checkout when another application continues it. Amp Deck therefore requires the executor that Amp already reports as connected. Reconnect the original runner, or continue the thread from a terminal opened in the intended repository. Archive remains available because it does not run repository tools.
 
-For development builds, plugin logs are written under the linked `.sdPlugin` directory's `logs` folder. The Stream Deck app's plugin logs can provide the underlying CLI or rendering error.
+### A command shows `ERROR`
 
-## Platform notes
+Try the equivalent operation from the Amp CLI to expose authentication, permission, or connectivity errors. Review and Ship run in detached execute mode, so later approvals, clarification requests, or failures appear in the Amp thread rather than on Stream Deck.
 
-- Amp Deck runs locally through Stream Deck's bundled Node.js runtime; installing Node.js is only necessary for source builds.
-- Opening a thread uses the operating system's default browser and accepts only HTTPS thread URLs on `ampcode.com`.
-- Review and Ship can cause an Amp agent to edit files or interact with repository workflows. They use conservative prompts, but the selected thread's normal Amp permissions and project guidance still apply.
-- Review and Ship use a hidden detached CLI process with piped output so Amp Deck can verify acceptance and report immediate errors. Amp Deck drains both output streams while the plugin is running. Native process survival after Stream Deck forcibly terminates or upgrades the plugin remains operating-system and host dependent; check the Amp thread before retrying an interrupted command.
-- Amp's live `top --stream-jsonl` status schema is experimental. Amp Deck validates its command-safety fields strictly and disables controls on a mismatch until a valid snapshot arrives. Shipping-label restart recovery is best effort because the current CLI search returns at most 100 matching threads; immediate dispatch tracking remains authoritative during the current plugin session.
-- Archive changes the thread's server-side archive state immediately after the hold completes.
-- Amp Deck does not store an Amp API key of its own. Authentication remains managed by the Amp CLI.
+Development builds write logs inside the linked `.sdPlugin` directory's `logs` folder.
+
+## Safety and privacy
+
+- Authentication stays with the local Amp CLI; Amp Deck does not store its own API key.
+- Thread links are opened only when they are HTTPS URLs on `ampcode.com`.
+- Review and Ship can edit files or interact with repository workflows under the selected thread's normal permissions and project guidance.
+- Archive changes the thread's server-side archive state as soon as the hold completes.
+- If Stream Deck stops or upgrades the plugin during a detached command, check the Amp thread before retrying.
 
 ## Development
 
@@ -185,7 +191,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` verifies formatting, linting, types, tests, the production bundle, and the Stream Deck manifest/layouts.
+`npm run check` verifies formatting, linting, types, tests, the production bundle, and the Stream Deck manifest and layouts.
 
 For local hardware iteration, link the plugin once and start watch mode:
 
@@ -194,27 +200,22 @@ npx streamdeck link com.daniel-insley.amp-deck.sdPlugin
 npm run watch
 ```
 
-Watch mode rebuilds changed TypeScript and restarts `com.daniel-insley.amp-deck` in Stream Deck. Other useful commands are:
+Useful development commands:
 
-| Command             | Purpose                                                                           |
-| ------------------- | --------------------------------------------------------------------------------- |
-| `npm run build`     | Create the production plugin bundle in `com.daniel-insley.amp-deck.sdPlugin/bin`. |
-| `npm test`          | Run the Node.js test suite.                                                       |
-| `npm run lint`      | Run ESLint with zero warnings allowed.                                            |
-| `npm run typecheck` | Type-check without emitting files.                                                |
-| `npm run format`    | Format the repository with Prettier.                                              |
-| `npm run validate`  | Validate the plugin manifest, assets, and layouts with the Stream Deck CLI.       |
+| Command                                          | Purpose                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| `npm run build`                                  | Build the production plugin bundle.                            |
+| `npm test`                                       | Run the Node.js test suite.                                    |
+| `npm run lint`                                   | Run ESLint with zero warnings allowed.                         |
+| `npm run typecheck`                              | Type-check without emitting files.                             |
+| `npm run format`                                 | Format the repository with Prettier.                           |
+| `npm run validate`                               | Validate the plugin manifest, assets, and layouts.             |
+| `npx tsx scripts/generate-readme-screenshots.ts` | Regenerate the README screenshots from the real SVG templates. |
 
-## Releases
-
-The plugin version is maintained in `com.daniel-insley.amp-deck.sdPlugin/manifest.json`. Before preparing a release, maintainers should update that four-part version, run `npm run check`, and then use the Stream Deck CLI packaging flow only after confirming the artwork, naming, signing, and distribution permissions for the intended channel:
-
-```shell
-npx streamdeck pack com.daniel-insley.amp-deck.sdPlugin
-```
-
-Packaging or publishing is not part of the normal build and should not be performed without maintainer approval.
+Amp's live `top --stream-jsonl` status schema is experimental. Amp Deck validates command-safety fields strictly and disables controls when it cannot trust a snapshot. Shipping-label restart recovery is best effort because the CLI search returns at most 100 matching threads; commands dispatched during the current plugin session remain authoritative.
 
 ## Project status
 
-Amp Deck is an independent, early-stage project. Amp and Stream Deck behavior may evolve, so keep the Amp CLI and Stream Deck app current and report reproducible issues with operating system, Stream Deck version, Amp CLI version, and relevant plugin log messages.
+Amp Deck is an independent, early-stage project. Amp and Stream Deck behavior may change. When reporting a problem, include your operating system, Stream Deck version, Amp CLI version, and relevant plugin log messages.
+
+The plugin version lives in `com.daniel-insley.amp-deck.sdPlugin/manifest.json`. Packaging and Marketplace publishing are maintainer tasks and are intentionally not part of the normal build.

@@ -3,7 +3,7 @@ import streamDeck from "@elgato/streamdeck";
 import { ArchiveThread, ReviewThread, ShipThread } from "./actions/cli-thread-command";
 import { EncoderStatus } from "./actions/encoder-status";
 import { OpenThread } from "./actions/open-thread";
-import { ShowPuck } from "./actions/puck-variation";
+import { ShowPuck } from "./actions/show-puck";
 import { getErrorMessage } from "./error-message";
 import { ThreadStore } from "./state/thread-store";
 
