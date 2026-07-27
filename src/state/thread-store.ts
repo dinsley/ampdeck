@@ -1,6 +1,9 @@
+import streamDeck from "@elgato/streamdeck";
+
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
 import { parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
 import { parseThreadMetadataList, type AmpThreadMetadata } from "../amp/amp-threads-model";
+import { getErrorMessage } from "../error-message";
 import { reachedUsageBoundary } from "../model/thread-status";
 import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from "./thread-store-model";
 
@@ -11,6 +14,7 @@ const usageRetryDelaysMs = [1_000, 5_000, 15_000];
 const reconciliationIntervalMs = 60_000;
 const reconciliationTimeoutMs = 5_000;
 const reconciliationLimit = 100;
+const logger = streamDeck.logger.createScope("ThreadStore");
 
 export type ShippingStatePersistence = {
 	load(): Promise<ShippingDispatchState[]>;
@@ -30,6 +34,7 @@ export class ThreadStore {
 	private readonly listeners = new Set<ThreadStoreListener>();
 	private reconciliationInFlight = false;
 	private reconciliationInventoryComplete = false;
+	private reconciliationWarningLogged = false;
 	private reconciliationTimer: NodeJS.Timeout | undefined;
 	private readonly threadMetadata = new Map<string, AmpThreadMetadata>();
 	private readonly shippingLifecycle: ShippingLifecycle;
@@ -118,6 +123,7 @@ export class ThreadStore {
 	acquire(): () => void {
 		this.users += 1;
 		if (this.users === 1) {
+			logger.info("Activating thread monitoring");
 			this.source.start();
 			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
 			this.usageTimer.unref();
@@ -138,6 +144,7 @@ export class ThreadStore {
 			released = true;
 			this.users -= 1;
 			if (this.users === 0) {
+				logger.info("Pausing thread monitoring");
 				this.source.stop();
 				if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
 				this.shippingExpiryTimer = undefined;
@@ -157,6 +164,7 @@ export class ThreadStore {
 
 		this.selectedThreadId = threadId;
 		this.selectionRevision += 1;
+		logger.debug("Selected thread changed");
 		this.cancelUsageRetries();
 		this.notify();
 		if (this.users > 0) void this.refreshSelectedUsage();
@@ -180,6 +188,7 @@ export class ThreadStore {
 	}
 
 	dispose(): void {
+		logger.debug("Disposing thread store");
 		this.source.stop();
 		if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
 		if (this.usageTimer) clearInterval(this.usageTimer);
@@ -203,6 +212,8 @@ export class ThreadStore {
 
 	private rebuildSnapshot(): void {
 		const threads = this.topSnapshot.threads.filter((thread) => this.shouldKeepReconciledThread(thread));
+		const prunedThreadCount = this.topSnapshot.threads.length - threads.length;
+		if (prunedThreadCount > 0) logger.debug(`Pruned ${prunedThreadCount} stale completed thread(s)`);
 		const visibleThreadIds = new Set(threads.map((thread) => thread.id));
 		for (const threadId of this.usageCosts.keys()) {
 			if (!visibleThreadIds.has(threadId)) this.usageCosts.delete(threadId);
@@ -239,13 +250,24 @@ export class ThreadStore {
 				reconciliationTimeoutMs,
 			);
 			const metadata = parseThreadMetadataList(output);
-			if (!metadata) return;
+			if (!metadata) {
+				if (!this.reconciliationWarningLogged) {
+					this.reconciliationWarningLogged = true;
+					logger.warn("Amp thread metadata response was not recognized; keeping the live status inventory");
+				}
+				return;
+			}
+			this.reconciliationWarningLogged = false;
 			this.reconciliationInventoryComplete = metadata.length < reconciliationLimit;
 			this.threadMetadata.clear();
 			for (const thread of metadata) this.threadMetadata.set(thread.id, thread);
+			logger.debug(
+				`Reconciled ${metadata.length} thread metadata record(s); inventory complete: ${this.reconciliationInventoryComplete}`,
+			);
 			this.rebuildSnapshot();
-		} catch {
+		} catch (error) {
 			// Reconciliation is supplementary; amp top remains the live inventory.
+			logger.debug(`Unable to reconcile thread metadata: ${getErrorMessage(error)}`);
 		} finally {
 			this.reconciliationInFlight = false;
 		}
@@ -269,8 +291,9 @@ export class ThreadStore {
 				this.usageCosts.set(threadId, cost);
 				this.rebuildSnapshot();
 			}
-		} catch {
+		} catch (error) {
 			// Usage is supplementary; inventory and controls remain available if it cannot be loaded.
+			logger.debug(`Unable to refresh selected thread usage: ${getErrorMessage(error)}`);
 		} finally {
 			this.usageInFlight = false;
 			if (this.users > 0 && this.selectedThreadId && this.selectedThreadId !== threadId) {

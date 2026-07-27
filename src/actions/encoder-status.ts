@@ -25,6 +25,7 @@ import { renderEncoderEmptySlice, renderEncoderFocusSlice } from "../rendering/e
 import { ThreadStore } from "../state/thread-store";
 
 const clockRefreshIntervalMs = 30_000;
+const logger = streamDeck.logger.createScope("EncoderStatus");
 
 type EncoderAction = DialRotateEvent["action"];
 
@@ -43,7 +44,7 @@ export class EncoderStatus extends SingletonAction {
 		this.store.subscribe((snapshot) => {
 			this.snapshot = snapshot;
 			void this.reconcileSnapshot().catch((error) => {
-				streamDeck.logger.error(`Unable to render thread status: ${getErrorMessage(error)}`);
+				logger.error(`Unable to render thread status: ${getErrorMessage(error)}`);
 			});
 		});
 	}
@@ -56,7 +57,7 @@ export class EncoderStatus extends SingletonAction {
 		this.visibleActionIds.add(ev.action.id);
 		this.animationTimer ??= setInterval(() => {
 			void this.refreshDynamicActions().catch((error) => {
-				streamDeck.logger.error(`Unable to refresh thread status: ${getErrorMessage(error)}`);
+				logger.error(`Unable to refresh thread status: ${getErrorMessage(error)}`);
 			});
 		}, busyIndicatorFrameDurationMs);
 		this.animationTimer.unref();
@@ -91,8 +92,9 @@ export class EncoderStatus extends SingletonAction {
 			if (thread.url && isAmpThreadUrl(thread.url)) {
 				try {
 					await streamDeck.system.openUrl(thread.url);
+					logger.info("Opened displayed thread");
 				} catch (error) {
-					streamDeck.logger.warn(`Unable to open displayed thread: ${getErrorMessage(error)}`);
+					logger.warn(`Unable to open displayed thread: ${getErrorMessage(error)}`);
 					await ev.action.showAlert();
 				}
 			}

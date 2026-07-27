@@ -9,6 +9,7 @@ const maximumOutputBytes = 2 * 1024 * 1024;
 const maximumErrorBytes = 4 * 1024;
 const maximumAcceptanceRecordBytes = 1024 * 1024;
 const commandAcceptanceTimeoutMs = 30_000;
+const logger = streamDeck.logger.createScope("AmpCommand");
 
 type LaunchAmpCommandOptions = {
 	command?: string;
@@ -124,7 +125,7 @@ export function launchAmpCommand(
 				settled = true;
 				reject(error);
 			} else {
-				streamDeck.logger.warn(`Accepted Amp command later failed: ${error.message}`);
+				logger.warn(`Accepted Amp command later failed: ${error.message}`);
 			}
 		});
 		child.once("close", (code) => {
@@ -139,9 +140,7 @@ export function launchAmpCommand(
 				settled = true;
 				reject(new Error(errorDetail || `Amp exited before accepting the command (${code ?? "unknown"})`));
 			} else if (accepted && code !== 0) {
-				streamDeck.logger.warn(
-					`Accepted Amp command later exited (${code ?? "unknown"})${errorDetail ? `: ${errorDetail}` : ""}`,
-				);
+				logger.warn(`Accepted Amp command later exited (${code ?? "unknown"})${errorDetail ? `: ${errorDetail}` : ""}`);
 			}
 		});
 	});

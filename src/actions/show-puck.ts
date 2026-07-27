@@ -42,6 +42,7 @@ const puckNames: Partial<Record<number, string>> = {
 };
 
 const randomHoldMs = 750;
+const logger = streamDeck.logger.createScope("ShowPuck");
 
 @action({ UUID: "com.dinsley.ampdeck.show-puck" })
 export class ShowPuck extends SingletonAction<ShowPuckSettings> {
@@ -100,7 +101,7 @@ export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 		const timer = setTimeout(() => {
 			this.titleTimers.delete(ev.action.id);
 			void ev.action.setTitle("").catch((error) => {
-				streamDeck.logger.error(`Unable to clear Show Puck title: ${getErrorMessage(error)}`);
+				logger.error(`Unable to clear Show Puck title: ${getErrorMessage(error)}`);
 			});
 		}, 1200);
 		timer.unref();

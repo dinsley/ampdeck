@@ -15,6 +15,8 @@ import { ThreadStore } from "../state/thread-store";
 import { evaluateCommandHold, getCommandKeyState } from "./command-model";
 import { TemporaryFeedback } from "./temporary-feedback";
 
+const logger = streamDeck.logger.createScope("Commands");
+
 type CliCommandDefinition = {
 	label: string;
 	icon: "archive" | "review" | "ship";
@@ -123,14 +125,16 @@ abstract class CliThreadCommand extends SingletonAction {
 		try {
 			await this.render(action);
 			if (this.isTargetReady(threadId, selectionRevision)) {
+				logger.info(`${this.definition.label} command started`);
 				await this.definition.execute(threadId);
 				commandAccepted = true;
 				this.definition.onAccepted?.(threadId);
+				logger.info(`${this.definition.label} command accepted`);
 			} else {
 				result = "unavailable";
 			}
 		} catch (error) {
-			streamDeck.logger.warn(`${this.definition.label} command failed: ${getErrorMessage(error)}`);
+			logger.warn(`${this.definition.label} command failed: ${getErrorMessage(error)}`);
 			result = "error";
 		} finally {
 			this.inFlightActionIds.delete(action.id);
@@ -174,8 +178,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			kind,
 			renderCommandFeedback(kind),
 			() => this.render(action),
-			(error) =>
-				streamDeck.logger.error(`Unable to restore ${this.definition.label} feedback: ${getErrorMessage(error)}`),
+			(error) => logger.error(`Unable to restore ${this.definition.label} feedback: ${getErrorMessage(error)}`),
 			expectedGeneration,
 		);
 	}
@@ -309,5 +312,5 @@ export class ShipThread extends CliThreadCommand {
 }
 
 function logBackgroundError(operation: Promise<void>, context: string): void {
-	void operation.catch((error) => streamDeck.logger.error(`Unable to ${context}: ${getErrorMessage(error)}`));
+	void operation.catch((error) => logger.error(`Unable to ${context}: ${getErrorMessage(error)}`));
 }

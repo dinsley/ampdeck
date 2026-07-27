@@ -36,7 +36,7 @@
 		"node": ">=24"
 	},
 	"devDependencies": {
-		"@elgato/cli": "^1.5.1",
+		"@elgato/cli": "^1.7.4",
 		"@rollup/plugin-commonjs": "^29.0.3",
 		"@rollup/plugin-node-resolve": "^16.0.3",
 		"@rollup/plugin-swc": "^0.4.1",

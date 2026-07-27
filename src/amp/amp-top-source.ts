@@ -10,9 +10,11 @@ export type { AmpTopSnapshot, AmpTopThread } from "./amp-top-model";
 type SnapshotListener = (snapshot: AmpTopSnapshot) => void;
 
 const restartDelayMs = 3000;
+const logger = streamDeck.logger.createScope("AmpTop");
 
 export class AmpTopSource {
 	private child: ChildProcessWithoutNullStreams | undefined;
+	private command: string | undefined;
 	private listener: SnapshotListener | undefined;
 	private restartTimer: NodeJS.Timeout | undefined;
 	private snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
@@ -29,10 +31,12 @@ export class AmpTopSource {
 		}
 
 		this.started = true;
+		logger.info("Starting Amp status monitoring");
 		this.launch();
 	}
 
 	stop(): void {
+		const wasStarted = this.started;
 		this.started = false;
 		if (this.restartTimer) {
 			clearTimeout(this.restartTimer);
@@ -42,12 +46,19 @@ export class AmpTopSource {
 		const child = this.child;
 		this.child = undefined;
 		child?.kill();
+		if (wasStarted) logger.info("Stopped Amp status monitoring");
 	}
 
 	private launch(): void {
 		this.update({ ...this.snapshot, connection: "connecting" });
 
-		const child = spawn(resolveAmpCommand(), ["top", "--stream-jsonl"], {
+		const command = resolveAmpCommand();
+		if (command !== this.command) {
+			this.command = command;
+			logger.info(`Using Amp CLI executable: ${command}`);
+		}
+		logger.debug("Launching Amp status source");
+		const child = spawn(command, ["top", "--stream-jsonl"], {
 			windowsHide: true,
 			env: { ...process.env, NO_COLOR: "1" },
 		});
@@ -65,7 +76,7 @@ export class AmpTopSource {
 				this.update({ ...this.snapshot, connection: "offline" });
 				if (!schemaWarningLogged) {
 					schemaWarningLogged = true;
-					streamDeck.logger.warn("Amp status schema mismatch; controls are disabled until a valid snapshot arrives");
+					logger.warn("Amp status schema mismatch; controls are disabled until a valid snapshot arrives");
 				}
 			}
 		};
@@ -88,7 +99,7 @@ export class AmpTopSource {
 			}
 
 			this.child = undefined;
-			streamDeck.logger.error(`Unable to start Amp status source: ${error.message}`);
+			logger.error(`Unable to start Amp status source: ${error.message}`);
 			this.scheduleRestart();
 		});
 		child.once("close", (code) => {
@@ -100,7 +111,9 @@ export class AmpTopSource {
 			if (finalLine) processLine(finalLine);
 			this.child = undefined;
 			if (stderr.trim()) {
-				streamDeck.logger.warn(`Amp status source exited (${code ?? "unknown"}): ${stderr.trim()}`);
+				logger.warn(`Amp status source exited (${code ?? "unknown"}): ${stderr.trim()}`);
+			} else {
+				logger.warn(`Amp status source exited (${code ?? "unknown"})`);
 			}
 			this.scheduleRestart();
 		});
@@ -119,10 +132,23 @@ export class AmpTopSource {
 			}
 		}, restartDelayMs);
 		this.restartTimer.unref();
+		logger.debug(`Amp status source will retry in ${restartDelayMs}ms`);
 	}
 
 	private update(snapshot: AmpTopSnapshot): void {
+		const previous = this.snapshot;
 		this.snapshot = snapshot;
+		if (snapshot.connection !== previous.connection) {
+			if (snapshot.connection === "live") {
+				logger.info(`Amp status is live with ${snapshot.threads.length} thread(s)`);
+			} else if (snapshot.connection === "offline") {
+				logger.warn("Amp status is offline");
+			} else {
+				logger.debug("Amp status is connecting");
+			}
+		} else if (snapshot.connection === "live" && snapshot.threads.length !== previous.threads.length) {
+			logger.debug(`Amp status inventory now contains ${snapshot.threads.length} thread(s)`);
+		}
 		this.listener?.(snapshot);
 	}
 }

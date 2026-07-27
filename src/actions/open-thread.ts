@@ -12,6 +12,8 @@ import { renderCommandFeedback, renderOpenThreadKey, type CommandFeedbackKind } 
 import { ThreadStore } from "../state/thread-store";
 import { TemporaryFeedback } from "./temporary-feedback";
 
+const logger = streamDeck.logger.createScope("OpenThread");
+
 @action({ UUID: "com.dinsley.ampdeck.open-thread" })
 export class OpenThread extends SingletonAction {
 	private readonly feedback = new TemporaryFeedback<CommandFeedbackKind>();
@@ -21,7 +23,7 @@ export class OpenThread extends SingletonAction {
 		super();
 		this.store.subscribe(() => {
 			void this.renderVisibleActions().catch((error) => {
-				streamDeck.logger.error(`Unable to render Open Thread action: ${getErrorMessage(error)}`);
+				logger.error(`Unable to render Open Thread action: ${getErrorMessage(error)}`);
 			});
 		});
 	}
@@ -58,9 +60,10 @@ export class OpenThread extends SingletonAction {
 		const appearanceGeneration = this.feedback.generation(ev.action.id);
 		try {
 			await streamDeck.system.openUrl(thread.url);
+			logger.info("Opened selected thread");
 			await this.showFeedback(ev.action, "success", appearanceGeneration);
 		} catch (error) {
-			streamDeck.logger.warn(`Unable to open selected thread: ${getErrorMessage(error)}`);
+			logger.warn(`Unable to open selected thread: ${getErrorMessage(error)}`);
 			await this.showFeedback(ev.action, "error", appearanceGeneration);
 			if (this.feedback.isCurrent(ev.action.id, appearanceGeneration)) {
 				await ev.action.showAlert();
@@ -78,7 +81,7 @@ export class OpenThread extends SingletonAction {
 			kind,
 			renderCommandFeedback(kind),
 			() => this.render(action),
-			(error) => streamDeck.logger.error(`Unable to restore Open Thread action: ${getErrorMessage(error)}`),
+			(error) => logger.error(`Unable to restore Open Thread action: ${getErrorMessage(error)}`),
 			expectedGeneration,
 		);
 	}
