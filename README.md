@@ -54,10 +54,17 @@ To build from source instead, see [For contributors](#for-contributors).
    amp top
    ```
 
-2. Open the Stream Deck app and find **Amp Deck** in the action list.
-3. Add **Thread Status** to all four encoder slots on one [Stream Deck+] page. The four slots join into one continuous display.
-4. Add **Open Thread**, **Review Thread**, **Ship Thread**, and **Archive Thread** to the keys above the display.
-5. Rotate any encoder to choose a thread. The title shown on each command key updates with the shared selection.
+2. Open the Stream Deck app and select **Amp Deck — Stream Deck+** from the profile menu. The plugin installer adds this editable recommended profile without switching your current profile or changing profiles you created.
+3. Customize the profile like any other Stream Deck profile: drag actions to different slots, add other actions, or rename the profile. **Show Puck** remains optional and can be added from the **Amp Deck** action list.
+4. Rotate any encoder to choose a thread. The title shown on each command key updates with the shared selection.
+
+### Set up the layout manually
+
+To add Amp Deck to an existing profile or rebuild the recommended layout yourself:
+
+1. Open the Stream Deck app and find **Amp Deck** in the action list.
+2. Add **Thread Status** to all four encoder slots on one [Stream Deck+] page. The four slots join into one continuous display.
+3. Add **Open Thread**, **Review Thread**, **Ship Thread**, and **Archive Thread** to the keys above the display.
 
 ## Use the plugin
 

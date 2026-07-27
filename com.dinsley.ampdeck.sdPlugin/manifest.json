@@ -108,6 +108,15 @@
 			"MinimumVersion": "10"
 		}
 	],
+	"Profiles": [
+		{
+			"Name": "profiles/stream-deck-plus",
+			"DeviceType": 7,
+			"AutoInstall": true,
+			"DontAutoSwitchWhenInstalled": true,
+			"Readonly": false
+		}
+	],
 	"Nodejs": {
 		"Version": "24"
 	},
