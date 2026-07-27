@@ -9,5 +9,8 @@
 			"fileMatch": ["**/layouts/*.json"],
 			"url": "https://schemas.elgato.com/streamdeck/plugins/layout.json"
 		}
-	]
+	],
+	"debug.javascript.defaultRuntimeExecutable": {
+		"pwa-node": "${env:HOME}/.local/share/mise/shims/node"
+	}
 }

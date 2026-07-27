@@ -29,6 +29,29 @@ describe("Amp CLI resolution", () => {
 		);
 	});
 
+	it("finds Homebrew installations outside the GUI application PATH on macOS", () => {
+		for (const expected of ["/opt/homebrew/bin/amp", "/usr/local/bin/amp"]) {
+			assert.equal(
+				resolveAmpCommand("darwin", "/Users/example", (path) => path === expected),
+				expected,
+			);
+		}
+	});
+
+	it("finds conventional user and system installations on Linux", () => {
+		for (const expected of [
+			"/home/example/.local/bin/amp",
+			"/home/linuxbrew/.linuxbrew/bin/amp",
+			"/usr/local/bin/amp",
+			"/usr/bin/amp",
+		]) {
+			assert.equal(
+				resolveAmpCommand("linux", "/home/example", (path) => path === expected),
+				expected,
+			);
+		}
+	});
+
 	it("falls back to PATH when the default installation is absent", () => {
 		assert.equal(
 			resolveAmpCommand("darwin", "/Users/example", () => false),

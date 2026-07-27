@@ -55,12 +55,13 @@ export function renderEncoderEmptySurfaceSvg(template: string, snapshot: AmpTopS
 
 function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput, viewBox: string): string {
 	const now = input.now ?? Date.now();
-	const project = escapeXml(truncateText((input.thread.project ?? "Amp thread").toUpperCase(), 64));
+	const project = escapeXml(truncateText((input.thread.project?.trim() || "Amp thread").toUpperCase(), 64));
 	const position = escapeXml(input.position);
 	const status = escapeXml(input.model.status);
 	const statusColor = statusColors[input.model.visualStatus];
 	const updated = escapeXml(formatCompactRelativeTime(input.thread.updatedAt, now));
 	const usage = escapeXml(truncateText(input.thread.usageCost ?? "—", 9));
+	const usageFontSize = splitGraphemes(input.thread.usageCost ?? "—").length > 7 ? 9 : 11;
 	const executorColor = "#595959";
 	const executorTextColor = input.thread.executorConnected ? strongTextColor : mutedTextColor;
 	const executorGlyph = renderExecutorGlyph(input.thread.executorConnected, executorColor);
@@ -101,6 +102,7 @@ function renderEncoderFocusSvg(template: string, input: EncoderFocusSurfaceInput
 		strongTextColor,
 		updated,
 		usage,
+		usageFontSize,
 		borderColor,
 		statusBorderColor,
 		phaseDuration,

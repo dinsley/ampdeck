@@ -25,6 +25,18 @@ describe("experimental amp top schema", () => {
 		);
 	});
 
+	it("normalizes blank optional display metadata", () => {
+		const snapshot = parseSnapshot(
+			JSON.stringify({
+				reconnecting: false,
+				threads: [{ ...validThread, title: " ", project: " ", updatedAt: " " }],
+			}),
+		);
+		assert.equal(snapshot?.threads[0]?.title, "T-one");
+		assert.equal(snapshot?.threads[0]?.project, undefined);
+		assert.equal(snapshot?.threads[0]?.updatedAt, undefined);
+	});
+
 	it("fails closed when a root or thread safety field is absent or mistyped", () => {
 		for (const value of [
 			{ threads: [validThread] },

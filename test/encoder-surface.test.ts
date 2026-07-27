@@ -16,7 +16,7 @@ describe("encoder surface rendering", () => {
 			project: "ampdeck",
 			title: "AmpDeck code review",
 			updatedAt: new Date(now - 14 * 60_000).toISOString(),
-			usageCost: "$0.97",
+			usageCost: "$0.005",
 		});
 		const svg = renderEncoderFocusSurfaceSvg(focusTemplate, {
 			thread,
@@ -30,8 +30,8 @@ describe("encoder surface rendering", () => {
 		assert.match(svg, /<text x="407" y="84"[^>]*>UPDATED<\/text>/);
 		assert.match(svg, /<text x="489" y="84" text-anchor="end"[^>]*>14m<\/text>/);
 		assert.match(svg, /<line x1="501" y1="74" x2="501" y2="86"/);
-		assert.match(svg, /<text x="514" y="84"[^>]*>COST<\/text>/);
-		assert.match(svg, /<text x="582" y="84" text-anchor="end"[^>]*>\$0\.97<\/text>/);
+		assert.match(svg, /<text x="508" y="84"[^>]*>COST<\/text>/);
+		assert.match(svg, /<text x="590" y="84" text-anchor="end"[^>]*font-size="11"[^>]*>\$0\.005<\/text>/);
 		assert.match(svg, /x1="600" y1="0" x2="600" y2="100" stroke="#C8D0C8" stroke-width="1\.5"/);
 		assert.doesNotMatch(svg, /\{\{|undefined/);
 	});
@@ -86,7 +86,20 @@ describe("encoder surface rendering", () => {
 		});
 
 		assert.match(focused, /<text x="489" y="84" text-anchor="end"[^>]*>—<\/text>/);
-		assert.match(focused, /<text x="582" y="84" text-anchor="end"[^>]*>\$1234567…<\/text>/);
+		assert.match(focused, /<text x="590" y="84" text-anchor="end"[^>]*font-size="9"[^>]*>\$1234567…<\/text>/);
+	});
+
+	it("falls back when project metadata is blank", () => {
+		const thread = createThread({ project: " " });
+		const focused = renderEncoderFocusSurfaceSvg(focusTemplate, {
+			thread,
+			model: getDisplayModel(thread),
+			animationFrame: 0,
+			position: "1/1",
+			now,
+		});
+
+		assert.match(focused, />AMP THREAD<\/text>/);
 	});
 
 	it("uses the black morphing-dot indicator for working and shipping activity", () => {

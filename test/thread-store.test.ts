@@ -26,6 +26,7 @@ describe("thread usage cache", () => {
 		const store = new ThreadStore({
 			source,
 			runCommand: async (args) => {
+				if (args.includes("list")) return "[]";
 				const threadId = args.at(-1);
 				assert.ok(threadId);
 				const request = deferred<string>();
@@ -59,6 +60,7 @@ describe("thread usage cache", () => {
 		const store = new ThreadStore({
 			source,
 			runCommand: (args) => {
+				if (args.includes("list")) return Promise.resolve("[]");
 				const threadId = args.at(-1);
 				assert.ok(threadId);
 				usageThreadIds.push(threadId);
@@ -78,6 +80,149 @@ describe("thread usage cache", () => {
 		store.selectThread("T-two");
 		await new Promise((resolve) => setImmediate(resolve));
 		assert.deepEqual(usageThreadIds, ["T-one"]);
+		store.dispose();
+	});
+});
+
+describe("thread metadata reconciliation", () => {
+	it("backfills missing metadata without replacing amp top state", async () => {
+		const source = new FakeTopSource();
+		const store = new ThreadStore({
+			source,
+			runCommand: (args, timeoutMs) => {
+				assert.deepEqual(args, ["--no-color", "threads", "list", "--json", "--limit", "100"]);
+				assert.equal(timeoutMs, 5_000);
+				return Promise.resolve(
+					JSON.stringify([
+						{
+							id: "T-thread",
+							title: "Theia UI/UX tickets",
+							tree: "file:///Users/dinsley/Projects/personal/theia",
+							updated: "2026-07-27T12:00:00.000Z",
+						},
+						{
+							id: "T-not-active",
+							title: "Archived thread",
+							tree: "file:///Users/dinsley/Projects/personal/archive",
+						},
+					]),
+				);
+			},
+		});
+		const release = store.acquire();
+		source.emit({
+			connection: "live",
+			threads: [thread({ title: "T-thread", working: true, executorConnected: false })],
+		});
+		await until(() => store.snapshot.threads[0]?.project === "theia");
+
+		assert.deepEqual(store.snapshot.threads, [
+			{
+				...thread({
+					title: "Theia UI/UX tickets",
+					project: "theia",
+					updatedAt: "2026-07-27T12:00:00.000Z",
+					working: true,
+					executorConnected: false,
+				}),
+				usageCost: undefined,
+				phase: undefined,
+			},
+		]);
+		release();
+		store.dispose();
+	});
+
+	it("prefers nonblank live metadata from amp top", async () => {
+		const source = new FakeTopSource();
+		const store = new ThreadStore({
+			source,
+			runCommand: () =>
+				Promise.resolve(
+					JSON.stringify([
+						{
+							id: "T-thread",
+							title: "Stale title",
+							tree: "file:///workspace/stale",
+							updated: "2026-07-26T12:00:00.000Z",
+						},
+					]),
+				),
+		});
+		const release = store.acquire();
+		source.emit({
+			connection: "live",
+			threads: [
+				thread({
+					title: "Live title",
+					project: "current",
+					updatedAt: "2026-07-27T12:00:00.000Z",
+				}),
+			],
+		});
+		await until(() => store.snapshot.threads[0]?.project === "current");
+
+		assert.equal(store.snapshot.threads[0]?.title, "Live title");
+		assert.equal(store.snapshot.threads[0]?.project, "current");
+		assert.equal(store.snapshot.threads[0]?.updatedAt, "2026-07-27T12:00:00.000Z");
+		release();
+		store.dispose();
+	});
+
+	it("prunes completed top entries absent from a complete inventory", async () => {
+		const source = new FakeTopSource();
+		const inventory = deferred<string>();
+		const store = new ThreadStore({
+			source,
+			runCommand: (args) => {
+				if (args.includes("list")) return inventory.promise;
+				return Promise.resolve("$0.01\n");
+			},
+		});
+		const release = store.acquire();
+		source.emit({
+			connection: "live",
+			threads: [
+				thread({ id: "T-gone", title: "Theia UI/UX tickets", executorConnected: false }),
+				thread({ id: "T-working", working: true, executorConnected: false }),
+				thread({ id: "T-connected", executorConnected: true }),
+			],
+		});
+		store.selectThread("T-gone");
+		inventory.resolve("[]");
+		await until(() => store.snapshot.threads.every(({ id }) => id !== "T-gone"));
+
+		assert.deepEqual(
+			store.snapshot.threads.map(({ id }) => id),
+			["T-working", "T-connected"],
+		);
+		assert.equal(store.selectedThreadId, undefined);
+		release();
+		store.dispose();
+	});
+
+	it("does not prune from a potentially truncated inventory", async () => {
+		const source = new FakeTopSource();
+		const store = new ThreadStore({
+			source,
+			runCommand: () =>
+				Promise.resolve(
+					JSON.stringify(
+						Array.from({ length: 100 }, (_, index) => ({
+							id: `T-inventory-${index}`,
+						})),
+					),
+				),
+		});
+		const release = store.acquire();
+		source.emit({
+			connection: "live",
+			threads: [thread({ id: "T-not-on-first-page", executorConnected: false })],
+		});
+		await new Promise((resolve) => setImmediate(resolve));
+
+		assert.equal(store.snapshot.threads[0]?.id, "T-not-on-first-page");
+		release();
 		store.dispose();
 	});
 });

@@ -59,6 +59,7 @@
 	},
 	"allowScripts": {
 		"@swc/core@1.15.46": true,
-		"esbuild@0.28.1": true
+		"esbuild@0.28.1": true,
+		"fsevents@2.3.3": true
 	}
 }

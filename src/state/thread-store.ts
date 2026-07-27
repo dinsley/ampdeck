@@ -1,5 +1,6 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
 import { parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { parseThreadMetadataList, type AmpThreadMetadata } from "../amp/amp-threads-model";
 import { reachedUsageBoundary } from "../model/thread-status";
 import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from "./thread-store-model";
 
@@ -7,6 +8,9 @@ type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 
 const usageRetryDelaysMs = [1_000, 5_000, 15_000];
+const reconciliationIntervalMs = 60_000;
+const reconciliationTimeoutMs = 5_000;
+const reconciliationLimit = 100;
 
 export type ShippingStatePersistence = {
 	load(): Promise<ShippingDispatchState[]>;
@@ -24,6 +28,10 @@ export class ThreadStore {
 	private readonly actionCooldownTimers = new Map<string, NodeJS.Timeout>();
 	private readonly actionGate = new ThreadActionGate();
 	private readonly listeners = new Set<ThreadStoreListener>();
+	private reconciliationInFlight = false;
+	private reconciliationInventoryComplete = false;
+	private reconciliationTimer: NodeJS.Timeout | undefined;
+	private readonly threadMetadata = new Map<string, AmpThreadMetadata>();
 	private readonly shippingLifecycle: ShippingLifecycle;
 	private shippingExpiryTimer: NodeJS.Timeout | undefined;
 	private shippingLoadPromise: Promise<void> | undefined;
@@ -50,6 +58,7 @@ export class ThreadStore {
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
 			const connectionBecameLive = this.topSnapshot.connection !== "live" && snapshot.connection === "live";
+			if (snapshot.connection !== "live") this.reconciliationInventoryComplete = false;
 			this.topSnapshot = snapshot;
 			if (snapshot.connection === "live" && this.shippingLifecycle.reconcile(snapshot.threads)) {
 				this.persistShippingState();
@@ -57,7 +66,10 @@ export class ThreadStore {
 			this.scheduleShippingExpiry();
 			this.rebuildSnapshot();
 			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
-			if (connectionBecameLive && this.users > 0) void this.restoreShippingState();
+			if (connectionBecameLive && this.users > 0) {
+				void this.restoreShippingState();
+				void this.refreshThreadMetadata();
+			}
 		});
 	}
 
@@ -109,8 +121,11 @@ export class ThreadStore {
 			this.source.start();
 			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
 			this.usageTimer.unref();
+			this.reconciliationTimer = setInterval(() => void this.refreshThreadMetadata(), reconciliationIntervalMs);
+			this.reconciliationTimer.unref();
 			void this.restoreShippingState();
 			this.scheduleShippingExpiry();
+			void this.refreshThreadMetadata();
 			void this.refreshSelectedUsage();
 		}
 
@@ -128,6 +143,8 @@ export class ThreadStore {
 				this.shippingExpiryTimer = undefined;
 				if (this.usageTimer) clearInterval(this.usageTimer);
 				this.usageTimer = undefined;
+				if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
+				this.reconciliationTimer = undefined;
 				this.cancelUsageRetries();
 			}
 		};
@@ -166,8 +183,10 @@ export class ThreadStore {
 		this.source.stop();
 		if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
 		if (this.usageTimer) clearInterval(this.usageTimer);
+		if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
 		this.shippingExpiryTimer = undefined;
 		this.usageTimer = undefined;
+		this.reconciliationTimer = undefined;
 		this.cancelUsageRetries();
 		for (const timer of this.actionCooldownTimers.values()) clearTimeout(timer);
 		this.actionCooldownTimers.clear();
@@ -183,19 +202,59 @@ export class ThreadStore {
 	}
 
 	private rebuildSnapshot(): void {
-		const visibleThreadIds = new Set(this.topSnapshot.threads.map((thread) => thread.id));
+		const threads = this.topSnapshot.threads.filter((thread) => this.shouldKeepReconciledThread(thread));
+		const visibleThreadIds = new Set(threads.map((thread) => thread.id));
 		for (const threadId of this.usageCosts.keys()) {
 			if (!visibleThreadIds.has(threadId)) this.usageCosts.delete(threadId);
 		}
+		if (this.selectedThreadId && !visibleThreadIds.has(this.selectedThreadId)) {
+			this.selectedThreadId = undefined;
+			this.selectionRevision += 1;
+			this.cancelUsageRetries();
+		}
 		this.snapshot = {
 			...this.topSnapshot,
-			threads: this.topSnapshot.threads.map((thread) => ({
-				...thread,
-				usageCost: this.usageCosts.get(thread.id),
-				phase: this.shippingLifecycle.isShipping(thread) ? "shipping" : undefined,
-			})),
+			threads: threads.map((thread) => {
+				const metadata = this.threadMetadata.get(thread.id);
+				return {
+					...thread,
+					title: thread.title === thread.id ? (metadata?.title ?? thread.title) : thread.title,
+					project: thread.project ?? metadata?.project,
+					updatedAt: thread.updatedAt ?? metadata?.updatedAt,
+					usageCost: this.usageCosts.get(thread.id),
+					phase: this.shippingLifecycle.isShipping(thread) ? "shipping" : undefined,
+				};
+			}),
 		};
 		this.notify();
+	}
+
+	private async refreshThreadMetadata(): Promise<void> {
+		if (this.users === 0 || this.reconciliationInFlight) return;
+
+		this.reconciliationInFlight = true;
+		try {
+			const output = await this.runCommand(
+				["--no-color", "threads", "list", "--json", "--limit", reconciliationLimit.toString()],
+				reconciliationTimeoutMs,
+			);
+			const metadata = parseThreadMetadataList(output);
+			if (!metadata) return;
+			this.reconciliationInventoryComplete = metadata.length < reconciliationLimit;
+			this.threadMetadata.clear();
+			for (const thread of metadata) this.threadMetadata.set(thread.id, thread);
+			this.rebuildSnapshot();
+		} catch {
+			// Reconciliation is supplementary; amp top remains the live inventory.
+		} finally {
+			this.reconciliationInFlight = false;
+		}
+	}
+
+	private shouldKeepReconciledThread(thread: AmpTopThread): boolean {
+		if (!this.reconciliationInventoryComplete || this.threadMetadata.has(thread.id)) return true;
+		if (thread.working || thread.executorConnected || this.shippingLifecycle.isShipping(thread)) return true;
+		return false;
 	}
 
 	private async refreshSelectedUsage(): Promise<void> {

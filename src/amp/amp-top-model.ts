@@ -77,10 +77,10 @@ export function parseSnapshot(line: string): AmpTopSnapshot | undefined {
 			}
 			threads.push({
 				id: thread.id,
-				title: typeof thread.title === "string" ? thread.title : thread.id,
+				title: nonBlankString(thread.title) ?? thread.id,
 				url: typeof thread.url === "string" ? thread.url : undefined,
-				project: typeof thread.project === "string" ? thread.project : undefined,
-				updatedAt: typeof thread.updatedAt === "string" ? thread.updatedAt : undefined,
+				project: nonBlankString(thread.project),
+				updatedAt: nonBlankString(thread.updatedAt),
 				working: thread.working,
 				executorConnected: thread.executorConnected,
 			});
@@ -93,6 +93,12 @@ export function parseSnapshot(line: string): AmpTopSnapshot | undefined {
 	} catch {
 		return undefined;
 	}
+}
+
+function nonBlankString(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim();
+	return trimmed || undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

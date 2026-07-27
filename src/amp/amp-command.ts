@@ -21,8 +21,22 @@ export function resolveAmpCommand(
 	home: string = homedir(),
 	fileExists: (path: string) => boolean = existsSync,
 ): string {
-	const executable = join(home, ".amp", "bin", platform === "win32" ? "amp.exe" : "amp");
-	if (fileExists(executable)) return executable;
+	const executableName = platform === "win32" ? "amp.exe" : "amp";
+	const candidates = [join(home, ".amp", "bin", executableName)];
+
+	if (platform === "darwin") {
+		candidates.push("/opt/homebrew/bin/amp", "/usr/local/bin/amp");
+	} else if (platform === "linux") {
+		candidates.push(
+			join(home, ".local", "bin", "amp"),
+			"/home/linuxbrew/.linuxbrew/bin/amp",
+			"/usr/local/bin/amp",
+			"/usr/bin/amp",
+		);
+	}
+
+	const executable = candidates.find(fileExists);
+	if (executable) return executable;
 	return "amp";
 }
 
