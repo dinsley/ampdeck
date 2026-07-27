@@ -269,8 +269,6 @@ function renderCommandFeedbackSvg(kind: CommandFeedbackKind): string {
 
 function canvas(width: number, height: number, content: string): string {
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-		<rect width="${width}" height="${height}" fill="#121317"/>
-		<circle cx="1460" cy="60" r="220" fill="#F0A832" opacity=".055"/>
 		${content}
 	</svg>`;
 }
@@ -302,6 +300,7 @@ function writeScreenshot(name: string, width: number, height: number, svg: strin
 			"--disable-gpu",
 			"--hide-scrollbars",
 			"--force-device-scale-factor=1",
+			"--default-background-color=00000000",
 			`--window-size=${width},${height}`,
 			`--screenshot=${pngPath}`,
 			pathToFileURL(svgPath).href,

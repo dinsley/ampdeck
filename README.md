@@ -1,10 +1,13 @@
-# Amp Deck
+# Amp Deck: Elgato Stream Deck+ Plugin
 
 Amp Deck puts active [Amp](https://ampcode.com/) threads on a Stream Deck+. The touch strip shows what Amp is doing; the keys open threads and send common follow-up commands without a trip back to the terminal.
 
 > Amp Deck is an unofficial Stream Deck plugin for Amp. It is not affiliated with or endorsed by Amp / Amp Code.
 
-![Recommended Amp Deck layout on Stream Deck+](./docs/images/recommended-layout.png)
+<p align="center">
+  <img src="./docs/images/recommended-layout.png" alt="Recommended Amp Deck layout on Stream Deck+" width="68%">
+  <img src="./docs/images/orbin-time.png" alt="Puck saying It's orbin' time" width="28%">
+</p>
 
 ## What it does
 
@@ -18,18 +21,22 @@ Thread data comes from Amp's experimental live inventory, `amp top --stream-json
 
 ## Requirements
 
-- a **Stream Deck+** for the complete four-encoder status display;
+- a **Stream Deck+**;
 - **Stream Deck 7.1 or newer**;
 - **macOS 13.5 or newer**, or **Windows 10 or newer**;
 - the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account.
 
-Show Puck also works on Stream Deck models without encoders. Thread Status and the shared selection used by Open, Review, Ship, and Archive need a Stream Deck+.
+## Supported devices
+
+Only **Stream Deck+** is currently supported. It is the only device available for development and hardware testing, so other Stream Deck hardware should be considered untested.
+
+A future goal is to support the [CORSAIR GALLEON 100 SD](https://www.elgato.com/ca/en/p/galleon-100-sd-stream-deck-integrated-mechanical-keyboard-ch-912a31i-na). Its integrated Stream Deck controls could support a more tailored Amp Deck experience than reusing the current four-encoder layout.
 
 ## Install
 
-1. Open the [latest Amp Deck release](https://github.com/dinsley/ampdeck/releases/latest).
+1. Open the [most recent Amp Deck release](https://github.com/dinsley/ampdeck/releases/latest).
 2. Download `com.dinsley.ampdeck.streamDeckPlugin`.
-3. Open the downloaded file and approve the installation in Stream Deck.
+3. Double-click the downloaded file and approve the installation in Stream Deck.
 4. Confirm that **Amp Deck** appears in the Stream Deck action list.
 
 To build from source instead, see [For contributors](#for-contributors).
