@@ -303,10 +303,7 @@ export class ShipThread extends CliThreadCommand {
 			cooldownMs: 10_000,
 			onAccepted: (threadId) => store.markShippingDispatched(threadId),
 			execute: (threadId) =>
-				launchAmpCommand(
-					["--no-color", "--label", "shipping", "--execute", shipPrompt, "threads", "continue", threadId],
-					threadId,
-				),
+				launchAmpCommand(["--no-color", "--execute", shipPrompt, "threads", "continue", threadId], threadId),
 		});
 	}
 }

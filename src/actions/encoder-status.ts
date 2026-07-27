@@ -116,13 +116,17 @@ export class EncoderStatus extends SingletonAction {
 	}
 
 	private async reconcileSnapshot(): Promise<void> {
-		updatePhaseMetadata(
-			this.phaseMetadata,
-			this.snapshot.threads.map((thread) => ({
-				id: thread.id,
-				status: getDisplayModel(thread).status,
-			})),
-		);
+		if (this.snapshot.connection === "live") {
+			updatePhaseMetadata(
+				this.phaseMetadata,
+				this.snapshot.threads.map((thread) => ({
+					id: thread.id,
+					status: getDisplayModel(thread).status,
+				})),
+			);
+		} else {
+			this.phaseMetadata.clear();
+		}
 		this.ensureFocusedThread();
 		await this.renderVisibleActions();
 	}

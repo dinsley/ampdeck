@@ -5,7 +5,7 @@ import type { AmpTopSnapshot } from "../src/amp/amp-top-source.ts";
 import type { AmpTopThread } from "../src/amp/amp-top-model.ts";
 import { reachedUsageBoundary } from "../src/model/thread-status.ts";
 import { ThreadStore } from "../src/state/thread-store.ts";
-import { ShippingLifecycle, ThreadActionGate } from "../src/state/thread-store-model.ts";
+import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from "../src/state/thread-store-model.ts";
 
 describe("thread usage refresh boundaries", () => {
 	it("detects completion reported by amp top", () => {
@@ -23,13 +23,15 @@ describe("thread usage cache", () => {
 	it("keeps a completed usage result when selection changes in flight", async () => {
 		const source = new FakeTopSource();
 		const usageRequests = new Map<string, Deferred<string>>();
-		const store = new ThreadStore(source, async (args) => {
-			if (args.includes("search")) return "[]";
-			const threadId = args.at(-1);
-			assert.ok(threadId);
-			const request = deferred<string>();
-			usageRequests.set(threadId, request);
-			return request.promise;
+		const store = new ThreadStore({
+			source,
+			runCommand: async (args) => {
+				const threadId = args.at(-1);
+				assert.ok(threadId);
+				const request = deferred<string>();
+				usageRequests.set(threadId, request);
+				return request.promise;
+			},
 		});
 		const release = store.acquire();
 		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
@@ -54,12 +56,14 @@ describe("thread usage cache", () => {
 	it("does not run supplementary CLI queries without a visible action", async () => {
 		const source = new FakeTopSource();
 		const usageThreadIds: string[] = [];
-		const store = new ThreadStore(source, (args) => {
-			if (args.includes("search")) return Promise.resolve("[]");
-			const threadId = args.at(-1);
-			assert.ok(threadId);
-			usageThreadIds.push(threadId);
-			return Promise.resolve("$1.23\n");
+		const store = new ThreadStore({
+			source,
+			runCommand: (args) => {
+				const threadId = args.at(-1);
+				assert.ok(threadId);
+				usageThreadIds.push(threadId);
+				return Promise.resolve("$1.23\n");
+			},
 		});
 		source.emit({ connection: "live", threads: [thread({ id: "T-one" }), thread({ id: "T-two" })] });
 
@@ -118,11 +122,12 @@ describe("shipping lifecycle", () => {
 		assert.equal(lifecycle.isShipping(thread()), false);
 	});
 
-	it("uses persistent labels only to recover an actively working workflow", () => {
+	it("restores a persisted workflow until its working transition completes", () => {
 		const lifecycle = new ShippingLifecycle();
-		lifecycle.setLabels(new Set(["T-thread"]));
-		assert.equal(lifecycle.isShipping(thread()), false);
+		lifecycle.restore([{ threadId: "T-thread", observedWorking: true, expiresAt: 0 }]);
 		assert.equal(lifecycle.isShipping(thread({ working: true })), true);
+		lifecycle.reconcile([thread({ working: false })]);
+		assert.equal(lifecycle.isShipping(thread()), false);
 	});
 
 	it("expires a dispatch that never starts", () => {
@@ -137,6 +142,52 @@ describe("shipping lifecycle", () => {
 		lifecycle.markDispatched("T-thread", 0, true);
 		lifecycle.reconcile([thread({ working: false })], 1);
 		assert.equal(lifecycle.isShipping(thread()), false);
+	});
+
+	it("reports the next unstarted dispatch expiry", () => {
+		const lifecycle = new ShippingLifecycle(100);
+		lifecycle.markDispatched("T-one", 10);
+		lifecycle.markDispatched("T-two", 20);
+		assert.equal(lifecycle.nextExpiry(), 110);
+		lifecycle.reconcile([thread({ id: "T-one", working: true }), thread({ id: "T-two" })], 30);
+		assert.equal(lifecycle.nextExpiry(), 120);
+	});
+});
+
+describe("persisted shipping state", () => {
+	it("expires a dispatch without requiring another Amp snapshot", async () => {
+		const source = new FakeTopSource();
+		const persistence = new MemoryShippingPersistence();
+		const store = new ThreadStore({ source, shippingPersistence: persistence, shippingStartTimeoutMs: 20 });
+		const release = store.acquire();
+		source.emit({ connection: "live", threads: [thread()] });
+
+		store.markShippingDispatched("T-thread");
+		assert.equal(store.snapshot.threads[0]?.phase, "shipping");
+		await new Promise((resolve) => setTimeout(resolve, 40));
+		assert.equal(store.snapshot.threads[0]?.phase, undefined);
+		await until(() => persistence.dispatches.length === 0);
+
+		release();
+		store.dispose();
+	});
+
+	it("restores a started workflow and clears it after completion", async () => {
+		const persistence = new MemoryShippingPersistence([
+			{ threadId: "T-thread", observedWorking: true, expiresAt: Date.now() - 1 },
+		]);
+		const source = new FakeTopSource();
+		const store = new ThreadStore({ source, shippingPersistence: persistence });
+		const release = store.acquire();
+		source.emit({ connection: "live", threads: [thread({ working: true })] });
+		await until(() => store.snapshot.threads[0]?.phase === "shipping");
+
+		source.emit({ connection: "live", threads: [thread({ working: false })] });
+		await until(() => persistence.dispatches.length === 0);
+		assert.equal(store.snapshot.threads[0]?.phase, undefined);
+
+		release();
+		store.dispose();
 	});
 });
 
@@ -171,6 +222,19 @@ type Deferred<T> = {
 	promise: Promise<T>;
 	resolve: (value: T) => void;
 };
+
+class MemoryShippingPersistence {
+	constructor(public dispatches: ShippingDispatchState[] = []) {}
+
+	load(): Promise<ShippingDispatchState[]> {
+		return Promise.resolve(this.dispatches.map((dispatch) => ({ ...dispatch })));
+	}
+
+	save(dispatches: ShippingDispatchState[]): Promise<void> {
+		this.dispatches = dispatches.map((dispatch) => ({ ...dispatch }));
+		return Promise.resolve();
+	}
+}
 
 function deferred<T>(): Deferred<T> {
 	let resolve: Deferred<T>["resolve"] = () => undefined;

@@ -28,10 +28,10 @@ describe("encoder surface rendering", () => {
 		});
 
 		assert.match(svg, /<text x="407" y="84"[^>]*>UPDATED<\/text>/);
-		assert.match(svg, /<text x="464" y="84"[^>]*>14m<\/text>/);
+		assert.match(svg, /<text x="489" y="84" text-anchor="end"[^>]*>14m<\/text>/);
 		assert.match(svg, /<line x1="501" y1="74" x2="501" y2="86"/);
 		assert.match(svg, /<text x="514" y="84"[^>]*>COST<\/text>/);
-		assert.match(svg, /<text x="549" y="84"[^>]*>\$0\.97<\/text>/);
+		assert.match(svg, /<text x="582" y="84" text-anchor="end"[^>]*>\$0\.97<\/text>/);
 		assert.match(svg, /x1="600" y1="0" x2="600" y2="100" stroke="#C8D0C8" stroke-width="1\.5"/);
 		assert.doesNotMatch(svg, /\{\{|undefined/);
 	});
@@ -73,6 +73,20 @@ describe("encoder surface rendering", () => {
 		assert.match(focused, new RegExp(`${"A".repeat(63)}…`));
 		assert.match(focused, />EXECUTOR CONNECTED<\/text>/);
 		assert.doesNotMatch(focused, new RegExp("A".repeat(65)));
+	});
+
+	it("uses compact right-aligned fallbacks for missing metadata", () => {
+		const thread = createThread({ updatedAt: "invalid", usageCost: "$1234567890" });
+		const focused = renderEncoderFocusSurfaceSvg(focusTemplate, {
+			thread,
+			model: getDisplayModel(thread),
+			animationFrame: 0,
+			position: "1/1",
+			now,
+		});
+
+		assert.match(focused, /<text x="489" y="84" text-anchor="end"[^>]*>—<\/text>/);
+		assert.match(focused, /<text x="582" y="84" text-anchor="end"[^>]*>\$1234567…<\/text>/);
 	});
 
 	it("uses the black morphing-dot indicator for working and shipping activity", () => {

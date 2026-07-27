@@ -5,6 +5,10 @@ type ShippingDispatch = {
 	expiresAt: number;
 };
 
+export type ShippingDispatchState = ShippingDispatch & {
+	threadId: string;
+};
+
 export class ThreadActionGate {
 	private readonly cooldownUntil = new Map<string, number>();
 	private readonly inFlightThreadIds = new Set<string>();
@@ -41,7 +45,6 @@ export class ThreadActionGate {
 
 export class ShippingLifecycle {
 	private readonly dispatches = new Map<string, ShippingDispatch>();
-	private labeledThreadIds = new Set<string>();
 	private readonly startTimeoutMs: number;
 
 	constructor(startTimeoutMs = 2 * 60_000) {
@@ -52,19 +55,54 @@ export class ShippingLifecycle {
 		this.dispatches.set(threadId, { observedWorking: alreadyWorking, expiresAt: now + this.startTimeoutMs });
 	}
 
-	setLabels(threadIds: Set<string>): void {
-		this.labeledThreadIds = threadIds;
-	}
-
-	reconcile(threads: WorkingThread[], now = Date.now()): void {
-		for (const [threadId, dispatch] of this.dispatches) {
-			const thread = threads.find((candidate) => candidate.id === threadId);
-			if (thread?.working) dispatch.observedWorking = true;
-			else if (dispatch.observedWorking || now >= dispatch.expiresAt) this.dispatches.delete(threadId);
+	restore(states: ShippingDispatchState[], now = Date.now()): void {
+		for (const state of states) {
+			if (
+				!state.threadId ||
+				typeof state.observedWorking !== "boolean" ||
+				!Number.isFinite(state.expiresAt) ||
+				(!state.observedWorking && state.expiresAt <= now) ||
+				this.dispatches.has(state.threadId)
+			) {
+				continue;
+			}
+			this.dispatches.set(state.threadId, {
+				observedWorking: state.observedWorking,
+				expiresAt: state.expiresAt,
+			});
 		}
 	}
 
+	reconcile(threads: WorkingThread[], now = Date.now()): boolean {
+		let changed = false;
+		for (const [threadId, dispatch] of this.dispatches) {
+			const thread = threads.find((candidate) => candidate.id === threadId);
+			if (thread?.working && !dispatch.observedWorking) {
+				dispatch.observedWorking = true;
+				changed = true;
+			} else if (!thread?.working && (dispatch.observedWorking || now >= dispatch.expiresAt)) {
+				this.dispatches.delete(threadId);
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
 	isShipping(thread: WorkingThread): boolean {
-		return this.dispatches.has(thread.id) || (this.labeledThreadIds.has(thread.id) && thread.working);
+		return this.dispatches.has(thread.id);
+	}
+
+	nextExpiry(): number | undefined {
+		let next: number | undefined;
+		for (const dispatch of this.dispatches.values()) {
+			if (!dispatch.observedWorking && (next === undefined || dispatch.expiresAt < next)) {
+				next = dispatch.expiresAt;
+			}
+		}
+		return next;
+	}
+
+	toJSON(): ShippingDispatchState[] {
+		return [...this.dispatches].map(([threadId, dispatch]) => ({ threadId, ...dispatch }));
 	}
 }

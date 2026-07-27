@@ -148,21 +148,6 @@ export function parseThreadUsageCost(output: string): string | undefined {
 		?.slice(0, 20);
 }
 
-export function parseThreadSearchIds(output: string): Set<string> | undefined {
-	try {
-		const value: unknown = JSON.parse(output);
-		if (!Array.isArray(value)) return undefined;
-		const threadIds = new Set<string>();
-		for (const thread of value as unknown[]) {
-			if (!isRecord(thread) || typeof thread.id !== "string") return undefined;
-			threadIds.add(thread.id);
-		}
-		return threadIds;
-	} catch {
-		return undefined;
-	}
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }

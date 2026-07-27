@@ -1,21 +1,34 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
-import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
 import { reachedUsageBoundary } from "../model/thread-status";
-import { ShippingLifecycle, ThreadActionGate } from "./thread-store-model";
+import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from "./thread-store-model";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 
 const usageRetryDelaysMs = [1_000, 5_000, 15_000];
-const shippingLabelsRefreshIntervalMs = 60_000;
+
+export type ShippingStatePersistence = {
+	load(): Promise<ShippingDispatchState[]>;
+	save(dispatches: ShippingDispatchState[]): Promise<void>;
+};
+
+type ThreadStoreOptions = {
+	source?: TopSource;
+	runCommand?: typeof runAmpCommand;
+	shippingPersistence?: ShippingStatePersistence;
+	shippingStartTimeoutMs?: number;
+};
 
 export class ThreadStore {
 	private readonly actionCooldownTimers = new Map<string, NodeJS.Timeout>();
 	private readonly actionGate = new ThreadActionGate();
 	private readonly listeners = new Set<ThreadStoreListener>();
-	private readonly shippingLifecycle = new ShippingLifecycle();
-	private shippingLabelsInFlight = false;
-	private shippingLabelsTimer: NodeJS.Timeout | undefined;
+	private readonly shippingLifecycle: ShippingLifecycle;
+	private shippingExpiryTimer: NodeJS.Timeout | undefined;
+	private shippingLoadPromise: Promise<void> | undefined;
+	private shippingPersistenceQueue = Promise.resolve();
+	private readonly shippingPersistence: ShippingStatePersistence | undefined;
 	private readonly source: TopSource;
 	private readonly runCommand: typeof runAmpCommand;
 	private readonly usageCosts = new Map<string, string>();
@@ -29,17 +42,22 @@ export class ThreadStore {
 	selectedThreadId: string | undefined;
 	snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 
-	constructor(source: TopSource = new AmpTopSource(), runCommand: typeof runAmpCommand = runAmpCommand) {
-		this.source = source;
-		this.runCommand = runCommand;
+	constructor(options: ThreadStoreOptions = {}) {
+		this.source = options.source ?? new AmpTopSource();
+		this.runCommand = options.runCommand ?? runAmpCommand;
+		this.shippingPersistence = options.shippingPersistence;
+		this.shippingLifecycle = new ShippingLifecycle(options.shippingStartTimeoutMs);
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
 			const connectionBecameLive = this.topSnapshot.connection !== "live" && snapshot.connection === "live";
 			this.topSnapshot = snapshot;
-			if (snapshot.connection === "live") this.reconcileShippingDispatches();
+			if (snapshot.connection === "live" && this.shippingLifecycle.reconcile(snapshot.threads)) {
+				this.persistShippingState();
+			}
+			this.scheduleShippingExpiry();
 			this.rebuildSnapshot();
 			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
-			if (connectionBecameLive && this.users > 0) void this.refreshShippingLabels();
+			if (connectionBecameLive && this.users > 0) void this.restoreShippingState();
 		});
 	}
 
@@ -80,6 +98,8 @@ export class ThreadStore {
 	markShippingDispatched(threadId: string): void {
 		const alreadyWorking = this.topSnapshot.threads.find((thread) => thread.id === threadId)?.working ?? false;
 		this.shippingLifecycle.markDispatched(threadId, Date.now(), alreadyWorking);
+		this.persistShippingState();
+		this.scheduleShippingExpiry();
 		this.rebuildSnapshot();
 	}
 
@@ -87,11 +107,10 @@ export class ThreadStore {
 		this.users += 1;
 		if (this.users === 1) {
 			this.source.start();
-			this.shippingLabelsTimer = setInterval(() => void this.refreshShippingLabels(), shippingLabelsRefreshIntervalMs);
-			this.shippingLabelsTimer.unref();
 			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
 			this.usageTimer.unref();
-			void this.refreshShippingLabels();
+			void this.restoreShippingState();
+			this.scheduleShippingExpiry();
 			void this.refreshSelectedUsage();
 		}
 
@@ -105,8 +124,8 @@ export class ThreadStore {
 			this.users -= 1;
 			if (this.users === 0) {
 				this.source.stop();
-				if (this.shippingLabelsTimer) clearInterval(this.shippingLabelsTimer);
-				this.shippingLabelsTimer = undefined;
+				if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
+				this.shippingExpiryTimer = undefined;
 				if (this.usageTimer) clearInterval(this.usageTimer);
 				this.usageTimer = undefined;
 				this.cancelUsageRetries();
@@ -145,9 +164,9 @@ export class ThreadStore {
 
 	dispose(): void {
 		this.source.stop();
-		if (this.shippingLabelsTimer) clearInterval(this.shippingLabelsTimer);
+		if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
 		if (this.usageTimer) clearInterval(this.usageTimer);
-		this.shippingLabelsTimer = undefined;
+		this.shippingExpiryTimer = undefined;
 		this.usageTimer = undefined;
 		this.cancelUsageRetries();
 		for (const timer of this.actionCooldownTimers.values()) clearTimeout(timer);
@@ -177,31 +196,6 @@ export class ThreadStore {
 			})),
 		};
 		this.notify();
-	}
-
-	private async refreshShippingLabels(): Promise<void> {
-		if (this.users === 0 || this.shippingLabelsInFlight) return;
-		this.shippingLabelsInFlight = true;
-		try {
-			const output = await this.runCommand([
-				"--no-color",
-				"threads",
-				"search",
-				"label:shipping",
-				"--limit",
-				"100",
-				"--json",
-			]);
-			const threadIds = parseThreadSearchIds(output);
-			if (threadIds) {
-				this.shippingLifecycle.setLabels(threadIds);
-				this.rebuildSnapshot();
-			}
-		} catch {
-			// Preserve the last known labels when Amp search is temporarily unavailable.
-		} finally {
-			this.shippingLabelsInFlight = false;
-		}
 	}
 
 	private async refreshSelectedUsage(): Promise<void> {
@@ -251,7 +245,47 @@ export class ThreadStore {
 		this.usageRetryTimer = undefined;
 	}
 
-	private reconcileShippingDispatches(): void {
-		this.shippingLifecycle.reconcile(this.topSnapshot.threads);
+	private async restoreShippingState(): Promise<void> {
+		if (!this.shippingPersistence) return;
+		this.shippingLoadPromise ??= this.shippingPersistence.load().then((dispatches) => {
+			this.shippingLifecycle.restore(dispatches);
+			if (this.topSnapshot.connection === "live") {
+				this.shippingLifecycle.reconcile(this.topSnapshot.threads);
+			}
+			this.persistShippingState();
+			this.scheduleShippingExpiry();
+			this.rebuildSnapshot();
+		});
+		await this.shippingLoadPromise;
+	}
+
+	private persistShippingState(): void {
+		const persistence = this.shippingPersistence;
+		if (!persistence) return;
+		const dispatches = this.shippingLifecycle.toJSON();
+		this.shippingPersistenceQueue = this.shippingPersistenceQueue
+			.then(() => persistence.save(dispatches))
+			.catch(() => undefined);
+	}
+
+	private scheduleShippingExpiry(): void {
+		if (this.shippingExpiryTimer) clearTimeout(this.shippingExpiryTimer);
+		this.shippingExpiryTimer = undefined;
+		if (this.users === 0) return;
+		const expiresAt = this.shippingLifecycle.nextExpiry();
+		if (expiresAt === undefined) return;
+		const timer = setTimeout(
+			() => {
+				this.shippingExpiryTimer = undefined;
+				if (this.shippingLifecycle.reconcile(this.topSnapshot.threads, Date.now())) {
+					this.persistShippingState();
+					this.rebuildSnapshot();
+				}
+				this.scheduleShippingExpiry();
+			},
+			Math.max(0, expiresAt - Date.now()),
+		);
+		timer.unref();
+		this.shippingExpiryTimer = timer;
 	}
 }

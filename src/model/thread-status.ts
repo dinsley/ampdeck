@@ -86,9 +86,9 @@ export function formatCompactDuration(elapsedMs: number): string {
 }
 
 export function formatCompactRelativeTime(updatedAt: string | undefined, now = Date.now()): string {
-	if (!updatedAt) return "UNKNOWN";
+	if (!updatedAt) return "—";
 	const elapsedSeconds = Math.max(0, Math.floor((now - Date.parse(updatedAt)) / 1000));
-	if (!Number.isFinite(elapsedSeconds)) return "UNKNOWN";
+	if (!Number.isFinite(elapsedSeconds)) return "—";
 	if (elapsedSeconds < 5) return "NOW";
 	if (elapsedSeconds < 60) return `${padTwoDigits(elapsedSeconds)}s`;
 	const elapsedMinutes = Math.floor(elapsedSeconds / 60);

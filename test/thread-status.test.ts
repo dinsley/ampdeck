@@ -88,7 +88,7 @@ describe("encoder status model", () => {
 		assert.equal(formatCompactRelativeTime(new Date(now - 2 * 60 * 60_000).toISOString(), now), "02h");
 		assert.equal(formatCompactRelativeTime(new Date(now - 2 * 24 * 60 * 60_000).toISOString(), now), "02d");
 		assert.equal(formatCompactRelativeTime(new Date(now - 14 * 60_000).toISOString(), now), "14m");
-		assert.equal(formatCompactRelativeTime("invalid", now), "UNKNOWN");
+		assert.equal(formatCompactRelativeTime("invalid", now), "—");
 	});
 });
 

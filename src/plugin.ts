@@ -5,9 +5,10 @@ import { EncoderStatus } from "./actions/encoder-status";
 import { OpenThread } from "./actions/open-thread";
 import { ShowPuck } from "./actions/show-puck";
 import { getErrorMessage } from "./error-message";
+import { streamDeckShippingStatePersistence } from "./state/shipping-persistence";
 import { ThreadStore } from "./state/thread-store";
 
-const threadStore = new ThreadStore();
+const threadStore = new ThreadStore({ shippingPersistence: streamDeckShippingStatePersistence });
 
 streamDeck.actions.registerAction(new EncoderStatus(threadStore));
 streamDeck.actions.registerAction(new OpenThread(threadStore));

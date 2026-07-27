@@ -5,7 +5,6 @@ import { describe, it } from "node:test";
 import {
 	isAcceptedUserRecord,
 	launchAmpCommand,
-	parseThreadSearchIds,
 	parseThreadUsageCost,
 	resolveAmpCommand,
 } from "../src/amp/amp-command.ts";
@@ -46,17 +45,6 @@ describe("Amp CLI output", () => {
 
 	it("ignores output without a display cost", () => {
 		assert.equal(parseThreadUsageCost("Thread usage is unavailable\n"), undefined);
-	});
-
-	it("extracts thread IDs from JSON search results", () => {
-		assert.deepEqual(parseThreadSearchIds('[{"id":"T-one"},{"id":"T-two"}]'), new Set(["T-one", "T-two"]));
-		assert.deepEqual(parseThreadSearchIds("[]"), new Set());
-	});
-
-	it("distinguishes malformed search output from an authoritative empty result", () => {
-		assert.equal(parseThreadSearchIds("not json"), undefined);
-		assert.equal(parseThreadSearchIds('{"id":"T-one"}'), undefined);
-		assert.equal(parseThreadSearchIds('[{"id":"T-one"},{"title":"missing"}]'), undefined);
 	});
 
 	it("recognizes only a streamed user acknowledgement for the expected thread", () => {
