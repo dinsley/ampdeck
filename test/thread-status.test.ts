@@ -4,11 +4,14 @@ import { describe, it } from "node:test";
 import type { AmpTopThread } from "../src/amp/amp-top-source.ts";
 import {
 	chooseFocusedThread,
+	formatCompactDuration,
+	formatCompactRelativeTime,
+	getDisplayModel,
 	orderThreadsByAttention,
 	splitTitle,
 	updatePhaseMetadata,
 	type PhaseMetadata,
-} from "../src/actions/encoder-status-model.ts";
+} from "../src/model/thread-status.ts";
 
 const now = Date.parse("2026-07-26T12:00:00Z");
 
@@ -63,6 +66,25 @@ describe("encoder status model", () => {
 		);
 		assert.equal(lines.length, 2);
 		assert.ok(lines.every((line) => line.length <= 53));
+	});
+
+	it("maps live thread fields to concise display states", () => {
+		assert.deepEqual(getDisplayModel(thread("shipping", { phase: "shipping" })), {
+			status: "SHIPPING",
+			visualStatus: "shipping",
+		});
+		assert.equal(getDisplayModel(thread("working", { working: true })).status, "WORKING");
+		assert.equal(getDisplayModel(thread("idle")).status, "IDLE");
+		assert.equal(getDisplayModel(thread("done", { executorConnected: false })).status, "DONE");
+	});
+
+	it("formats compact durations and relative update times at their boundaries", () => {
+		assert.equal(formatCompactDuration(59_999), "59s");
+		assert.equal(formatCompactDuration(60_000), "1m");
+		assert.equal(formatCompactDuration(3_661_000), "1h 1m");
+		assert.equal(formatCompactRelativeTime(new Date(now - 4_000).toISOString(), now), "NOW");
+		assert.equal(formatCompactRelativeTime(new Date(now - 2 * 60 * 60_000).toISOString(), now), "2h");
+		assert.equal(formatCompactRelativeTime("invalid", now), "UNKNOWN");
 	});
 });
 

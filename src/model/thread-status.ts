@@ -6,6 +6,20 @@ export type PhaseMetadata = {
 	startedAt: number;
 };
 
+export type VisualStatus = "idle" | "running" | "shipping" | "done";
+
+export type DisplayModel = {
+	status: "IDLE" | "WORKING" | "SHIPPING" | "DONE";
+	visualStatus: VisualStatus;
+};
+
+export function getDisplayModel(thread: AmpTopThread): DisplayModel {
+	if (thread.phase === "shipping") return { status: "SHIPPING", visualStatus: "shipping" };
+	if (thread.working) return { status: "WORKING", visualStatus: "running" };
+	if (thread.executorConnected) return { status: "IDLE", visualStatus: "idle" };
+	return { status: "DONE", visualStatus: "done" };
+}
+
 export function orderThreadsByAttention(threads: AmpTopThread[]): AmpTopThread[] {
 	return threads
 		.map((thread, index) => ({ thread, index }))
@@ -61,6 +75,27 @@ export function splitTitle(title: string): string[] {
 	const first = graphemes.slice(0, splitAt).join("").trim();
 	const second = truncateText(graphemes.slice(splitAt).join("").trim(), maximumLineLength);
 	return [first, second];
+}
+
+export function formatCompactDuration(elapsedMs: number): string {
+	const seconds = Math.max(0, Math.floor(elapsedMs / 1000));
+	if (seconds < 60) return `${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) return `${minutes}m`;
+	return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
+export function formatCompactRelativeTime(updatedAt: string | undefined, now = Date.now()): string {
+	if (!updatedAt) return "UNKNOWN";
+	const elapsedSeconds = Math.max(0, Math.floor((now - Date.parse(updatedAt)) / 1000));
+	if (!Number.isFinite(elapsedSeconds)) return "UNKNOWN";
+	if (elapsedSeconds < 5) return "NOW";
+	if (elapsedSeconds < 60) return `${elapsedSeconds}s`;
+	const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+	if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+	const elapsedHours = Math.floor(elapsedMinutes / 60);
+	if (elapsedHours < 24) return `${elapsedHours}h`;
+	return `${Math.floor(elapsedHours / 24)}d`;
 }
 
 function attentionRank(thread: AmpTopThread): number {

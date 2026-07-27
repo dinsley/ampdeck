@@ -26,7 +26,7 @@ export function renderCommandKey(options: {
 			<circle cx="72" cy="72" r="15" fill="none" stroke="#595959" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="59 35"/>
 		</g>`
 		: "";
-	const detailMarkup = `<text x="72" y="105" fill="#27251D" opacity="${opacity}" font-family="Segoe UI, sans-serif" font-size="13" font-weight="500" text-anchor="middle">${escapeXml(truncateText(options.detail, 15))}</text>`;
+	const detailMarkup = `<text x="72" y="105" fill="#27251D" opacity="${opacity}" font-size="13" font-weight="500" text-anchor="middle">${escapeXml(truncateText(options.detail, 15))}</text>`;
 	const headerMarkup = renderActionHeader(options.icon, options.label, opacity, 34);
 	const progressMarkup =
 		options.progress === undefined

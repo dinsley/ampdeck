@@ -4,6 +4,7 @@ import { ArchiveThread, ReviewThread, ShipThread } from "./actions/cli-thread-co
 import { EncoderStatus } from "./actions/encoder-status";
 import { OpenThread } from "./actions/open-thread";
 import { ShowPuck } from "./actions/puck-variation";
+import { getErrorMessage } from "./error-message";
 import { ThreadStore } from "./state/thread-store";
 
 const threadStore = new ThreadStore();
@@ -29,7 +30,3 @@ function shutdown(): void {
 
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
-
-function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
-}

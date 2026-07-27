@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { reachedUsageBoundary } from "../src/actions/encoder-status-model.ts";
 import type { AmpTopSnapshot } from "../src/amp/amp-top-source.ts";
 import type { AmpTopThread } from "../src/amp/amp-top-model.ts";
+import { reachedUsageBoundary } from "../src/model/thread-status.ts";
 import { ThreadStore } from "../src/state/thread-store.ts";
 import { ShippingLifecycle, ThreadActionGate } from "../src/state/thread-store-model.ts";
 

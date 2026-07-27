@@ -1,6 +1,6 @@
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
-import { reachedUsageBoundary } from "../actions/encoder-status-model";
 import { parseThreadSearchIds, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import { reachedUsageBoundary } from "../model/thread-status";
 import { ShippingLifecycle, ThreadActionGate } from "./thread-store-model";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { svgDataUrl } from "../src/rendering/svg-template.ts";
+import { renderSvgTemplate, svgDataUrl } from "../src/rendering/svg-template.ts";
 import { escapeXml, splitGraphemes, truncateText } from "../src/rendering/text.ts";
 
 describe("SVG text rendering", () => {
@@ -17,5 +17,9 @@ describe("SVG text rendering", () => {
 		assert.doesNotThrow(() => svgDataUrl(`<svg>${malformed}</svg>`));
 		assert.equal(escapeXml(`<${malformed}&`), "&lt;bad�&amp;");
 		assert.equal(escapeXml(`<&"'😀>`), "&lt;&amp;&quot;&apos;😀&gt;");
+	});
+
+	it("fails loudly when an SVG template value is missing", () => {
+		assert.throws(() => renderSvgTemplate("<text>{{missing}}</text>", {}), /Missing SVG template value: missing/);
 	});
 });

@@ -8,6 +8,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { launchAmpCommand, runAmpCommand } from "../amp/amp-command";
+import { getErrorMessage } from "../error-message";
 import { renderCommandFeedback, renderCommandKey, type CommandFeedbackKind } from "../rendering/command-key";
 import { ThreadStore } from "../state/thread-store";
 import { evaluateCommandHold } from "./command-hold-model";
@@ -331,8 +332,4 @@ export class ShipThread extends CliThreadCommand {
 
 function logBackgroundError(operation: Promise<void>, context: string): void {
 	void operation.catch((error) => streamDeck.logger.error(`Unable to ${context}: ${getErrorMessage(error)}`));
-}
-
-function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
 }

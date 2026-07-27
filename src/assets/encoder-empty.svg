@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="{{viewBox}}">
-	<style>text { font-family: 'Berkeley Mono V2', monospace !important; }</style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="{{viewBox}}" font-family="Berkeley Mono V2, SFMono-Regular, Consolas, monospace">
 	<rect width="800" height="100" fill="{{surfaceColor}}"/>
-	<text x="400" y="45" text-anchor="middle" fill="{{inkColor}}" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">{{status}}</text>
-	<text x="400" y="70" text-anchor="middle" fill="{{mutedTextColor}}" font-family="Segoe UI, sans-serif" font-size="13">{{detail}}</text>
+	<text x="400" y="45" text-anchor="middle" fill="{{inkColor}}" font-size="22" font-weight="700">{{status}}</text>
+	<text x="400" y="70" text-anchor="middle" fill="{{mutedTextColor}}" font-size="13">{{detail}}</text>
 	<rect x="0" y="96" width="800" height="3" fill="{{borderColor}}"/>
 </svg>

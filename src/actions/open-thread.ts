@@ -7,6 +7,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { isAmpThreadUrl } from "../amp/thread-url";
+import { getErrorMessage } from "../error-message";
 import { renderCommandFeedback, renderOpenThreadKey, type CommandFeedbackKind } from "../rendering/command-key";
 import { ThreadStore } from "../state/thread-store";
 import { TemporaryFeedback } from "./temporary-feedback";
@@ -104,8 +105,4 @@ export class OpenThread extends SingletonAction {
 			}),
 		);
 	}
-}
-
-function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
 }

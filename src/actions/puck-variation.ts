@@ -7,6 +7,8 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 
+import { getErrorMessage } from "../error-message";
+
 type ShowPuckSettings = {
 	puckNumber?: number;
 	/** Migrated from the original eight-variation implementation. */
@@ -131,8 +133,4 @@ function randomPuckNumber(excluding?: number): number {
 
 function nextPuckNumber(current: number | undefined): number {
 	return current === undefined ? randomPuckNumber() : (current % puckCount) + 1;
-}
-
-function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
 }
