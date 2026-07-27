@@ -20,6 +20,35 @@ describe("thread usage refresh boundaries", () => {
 });
 
 describe("thread usage cache", () => {
+	it("publishes origin metadata without waiting for the cost command", async () => {
+		const source = new FakeTopSource();
+		const usageRequest = deferred<string>();
+		const store = new ThreadStore({
+			source,
+			detailRetryDelaysMs: [],
+			runCommand: (args) => {
+				if (args.includes("list")) return Promise.resolve("[]");
+				if (args.includes("export")) {
+					return Promise.resolve('{"meta":{"executorType":"sandbox"},"messages":[]}');
+				}
+				return usageRequest.promise;
+			},
+		});
+		const release = store.acquire();
+		const releaseDetails = store.acquireStatusDetails();
+		store.selectThread("T-thread");
+		source.emit({ connection: "live", threads: [thread()] });
+
+		await until(() => store.snapshot.threads[0]?.executionOrigin === "orb");
+		assert.equal(store.snapshot.threads[0]?.usageCost, undefined);
+
+		usageRequest.resolve("$0.01\n");
+		await until(() => store.snapshot.threads[0]?.usageCost === "$0.01");
+		releaseDetails();
+		release();
+		store.dispose();
+	});
+
 	it("keeps a completed usage result when selection changes in flight", async () => {
 		const source = new FakeTopSource();
 		const usageRequests = new Map<string, Deferred<string>>();

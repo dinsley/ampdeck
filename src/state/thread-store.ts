@@ -15,6 +15,7 @@ const defaultDetailRetryDelaysMs = [30_000, 60_000];
 const defaultDetailMinimumIntervalMs = 30_000;
 const defaultWorkingDetailFallbackMs = 5 * 60_000;
 const detailCommandTimeoutMs = 15_000;
+const detailExportMaximumOutputBytes = 5 * 1024 * 1024;
 const reconciliationIntervalMs = 60_000;
 const reconciliationTimeoutMs = 5_000;
 const reconciliationLimit = 100;
@@ -330,32 +331,8 @@ export class ThreadStore {
 		const now = Date.now();
 		const refreshDue = now - (this.detailUpdatedAt.get(threadId) ?? 0) >= this.detailMinimumIntervalMs;
 		try {
-			if (refreshDue) {
-				const usageOutput = await this.runCommand(["--no-color", "threads", "usage", threadId], detailCommandTimeoutMs);
-				const cost = parseThreadUsageCost(usageOutput);
-				if (cost) this.usageCosts.set(threadId, cost);
-			}
-		} catch (error) {
-			// Usage is supplementary; inventory and controls remain available if it cannot be loaded.
-			logger.debug(`Unable to refresh selected thread cost: ${getErrorMessage(error)}`);
-		}
-		try {
-			if (refreshDue) {
-				const exportOutput = await this.runCommand(
-					["--no-color", "threads", "export", threadId],
-					detailCommandTimeoutMs,
-				);
-				const details = parseThreadExportDetails(exportOutput);
-				if (details?.tokensUsed !== undefined) this.tokensUsed.set(threadId, details.tokensUsed);
-				if (details && !this.executionOrigins.has(threadId)) {
-					this.executionOrigins.set(threadId, details.executionOrigin);
-				}
-				this.detailUpdatedAt.set(threadId, now);
-				this.rebuildSnapshot();
-			}
-		} catch (error) {
-			// Export output is discarded immediately and is never logged or persisted.
-			logger.debug(`Unable to refresh selected thread token usage: ${getErrorMessage(error)}`);
+			if (refreshDue)
+				await Promise.all([this.refreshSelectedCost(threadId), this.refreshSelectedExport(threadId, now)]);
 		} finally {
 			this.detailInFlight = false;
 			this.scheduleWorkingDetailFallback();
@@ -363,6 +340,38 @@ export class ThreadStore {
 				this.detailRefreshQueued = false;
 				this.requestSelectedDetails();
 			}
+		}
+	}
+
+	private async refreshSelectedCost(threadId: string): Promise<void> {
+		try {
+			const output = await this.runCommand(["--no-color", "threads", "usage", threadId], detailCommandTimeoutMs);
+			const cost = parseThreadUsageCost(output);
+			if (cost) {
+				this.usageCosts.set(threadId, cost);
+				this.rebuildSnapshot();
+			}
+		} catch (error) {
+			// Usage is supplementary; inventory and controls remain available if it cannot be loaded.
+			logger.debug(`Unable to refresh selected thread cost: ${getErrorMessage(error)}`);
+		}
+	}
+
+	private async refreshSelectedExport(threadId: string, refreshedAt: number): Promise<void> {
+		try {
+			const output = await this.runCommand(
+				["--no-color", "threads", "export", threadId],
+				detailCommandTimeoutMs,
+				detailExportMaximumOutputBytes,
+			);
+			const details = parseThreadExportDetails(output);
+			if (details?.tokensUsed !== undefined) this.tokensUsed.set(threadId, details.tokensUsed);
+			if (details) this.executionOrigins.set(threadId, details.executionOrigin);
+			this.detailUpdatedAt.set(threadId, refreshedAt);
+			this.rebuildSnapshot();
+		} catch (error) {
+			// Export output is discarded immediately and is never logged or persisted.
+			logger.debug(`Unable to refresh selected thread token usage: ${getErrorMessage(error)}`);
 		}
 	}
 

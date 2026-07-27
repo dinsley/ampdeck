@@ -7,7 +7,7 @@ import streamDeck from "@elgato/streamdeck";
 
 import type { ExecutionOrigin } from "./amp-top-model";
 
-const maximumOutputBytes = 2 * 1024 * 1024;
+const defaultMaximumOutputBytes = 2 * 1024 * 1024;
 const maximumErrorBytes = 4 * 1024;
 const maximumAcceptanceRecordBytes = 1024 * 1024;
 const commandAcceptanceTimeoutMs = 30_000;
@@ -45,7 +45,11 @@ export function resolveAmpCommand(
 	return "amp";
 }
 
-export function runAmpCommand(args: string[], timeoutMs = 30_000): Promise<string> {
+export function runAmpCommand(
+	args: string[],
+	timeoutMs = 30_000,
+	maximumOutputBytes = defaultMaximumOutputBytes,
+): Promise<string> {
 	return new Promise((resolve, reject) => {
 		execFile(
 			resolveAmpCommand(),
