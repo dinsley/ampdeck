@@ -1,4 +1,5 @@
 import type { AmpTopThread } from "../amp/amp-top-source";
+import { splitGraphemes, truncateText } from "../rendering/text";
 
 export type PhaseMetadata = {
 	current: string;
@@ -51,12 +52,14 @@ export function updatePhaseMetadata(
 
 export function splitTitle(title: string): string[] {
 	const maximumLineLength = 53;
-	if (title.length <= maximumLineLength) return [title];
+	const graphemes = splitGraphemes(title);
+	if (graphemes.length <= maximumLineLength) return [graphemes.join("")];
 
-	const candidate = title.slice(0, maximumLineLength + 1);
-	const splitAt = Math.max(candidate.lastIndexOf(" "), 28);
-	const first = title.slice(0, splitAt).trim();
-	const second = truncate(title.slice(splitAt).trim(), maximumLineLength);
+	const candidate = graphemes.slice(0, maximumLineLength + 1);
+	const lastWhitespace = candidate.findLastIndex((grapheme) => /\s/u.test(grapheme));
+	const splitAt = Math.max(lastWhitespace, 28);
+	const first = graphemes.slice(0, splitAt).join("").trim();
+	const second = truncateText(graphemes.slice(splitAt).join("").trim(), maximumLineLength);
 	return [first, second];
 }
 
@@ -64,8 +67,4 @@ function attentionRank(thread: AmpTopThread): number {
 	if (thread.phase === "shipping") return 0;
 	if (thread.working) return 1;
 	return 2;
-}
-
-function truncate(value: string, length: number): string {
-	return value.length > length ? `${value.slice(0, length - 1)}…` : value;
 }

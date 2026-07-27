@@ -12,6 +12,7 @@ import encoderFocusTemplate from "../assets/encoder-focus.svg";
 import type { AmpTopSnapshot, AmpTopThread } from "../amp/amp-top-source";
 import { isAmpThreadUrl } from "../amp/thread-url";
 import { renderSvgTemplate, svgDataUrl } from "../rendering/svg-template";
+import { escapeXml, truncateText } from "../rendering/text";
 import { ThreadStore } from "../state/thread-store";
 import {
 	chooseFocusedThread,
@@ -102,7 +103,12 @@ export class EncoderStatus extends SingletonAction {
 
 		if (ev.payload.hold) {
 			if (thread.url && isAmpThreadUrl(thread.url)) {
-				await streamDeck.system.openUrl(thread.url);
+				try {
+					await streamDeck.system.openUrl(thread.url);
+				} catch (error) {
+					streamDeck.logger.warn(`Unable to open displayed thread: ${getErrorMessage(error)}`);
+					await ev.action.showAlert();
+				}
 			}
 			return;
 		}
@@ -305,7 +311,7 @@ function renderFocusSlice(input: {
 			statusColor,
 			statusFontSize: input.model.status.length > 10 ? 16 : 20,
 			status,
-			activityDetail: truncate(activityDetail, 30),
+			activityDetail: truncateText(activityDetail, 30),
 		}),
 	);
 }
@@ -334,25 +340,12 @@ function renderEmptyFocusSlice(column: number, snapshot: AmpTopSnapshot): string
 	);
 }
 
-function truncate(value: string, length: number): string {
-	return value.length > length ? `${value.slice(0, length - 1)}…` : value;
-}
-
 function formatDuration(elapsedMs: number): string {
 	const seconds = Math.max(0, Math.floor(elapsedMs / 1000));
 	if (seconds < 60) return `${seconds}s`;
 	const minutes = Math.floor(seconds / 60);
 	if (minutes < 60) return `${minutes}m`;
 	return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
-
-function escapeXml(value: string): string {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&apos;");
 }
 
 function formatRelativeUpdate(updatedAt: string | undefined): string {

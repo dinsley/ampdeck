@@ -10,6 +10,8 @@ import streamDeck, {
 import { launchAmpCommand, runAmpCommand } from "../amp/amp-command";
 import { renderCommandFeedback, renderCommandKey, type CommandFeedbackKind } from "../rendering/command-key";
 import { ThreadStore } from "../state/thread-store";
+import { evaluateCommandHold } from "./command-hold-model";
+import { TemporaryFeedback } from "./temporary-feedback";
 
 type CliCommandDefinition = {
 	label: string;
@@ -32,12 +34,9 @@ type HoldState = {
 };
 
 abstract class CliThreadCommand extends SingletonAction {
-	private readonly appearanceGenerations = new Map<string, number>();
-	private readonly feedback = new Map<string, CommandFeedbackKind>();
-	private readonly feedbackTimers = new Map<string, NodeJS.Timeout>();
+	private readonly feedback = new TemporaryFeedback<CommandFeedbackKind>();
 	private readonly holds = new Map<string, HoldState>();
 	private readonly inFlightActionIds = new Set<string>();
-	private readonly visibleActionIds = new Set<string>();
 	private animationTimer: NodeJS.Timeout | undefined;
 	private releaseStore: (() => void) | undefined;
 
@@ -46,29 +45,24 @@ abstract class CliThreadCommand extends SingletonAction {
 		private readonly definition: CliCommandDefinition,
 	) {
 		super();
-		this.store.subscribe(() =>
-			logBackgroundError(this.renderVisibleActions(), `render ${this.definition.label} action`),
-		);
+		this.store.subscribe(() => {
+			this.cancelInvalidatedHolds();
+			logBackgroundError(this.renderVisibleActions(), `render ${this.definition.label} action`);
+		});
 	}
 
 	override async onWillAppear(ev: WillAppearEvent): Promise<void> {
 		if (!ev.action.isKey()) return;
-		this.appearanceGenerations.set(ev.action.id, (this.appearanceGenerations.get(ev.action.id) ?? 0) + 1);
-		this.visibleActionIds.add(ev.action.id);
+		this.feedback.appear(ev.action.id);
 		this.releaseStore ??= this.store.acquire();
 		this.ensureAnimationTimer();
 		await this.render(ev.action);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent): void {
-		this.appearanceGenerations.set(ev.action.id, (this.appearanceGenerations.get(ev.action.id) ?? 0) + 1);
 		this.clearHold(ev.action.id);
-		this.feedback.delete(ev.action.id);
-		const feedbackTimer = this.feedbackTimers.get(ev.action.id);
-		if (feedbackTimer) clearTimeout(feedbackTimer);
-		this.feedbackTimers.delete(ev.action.id);
-		this.visibleActionIds.delete(ev.action.id);
-		if (this.visibleActionIds.size === 0) {
+		this.feedback.disappear(ev.action.id);
+		if (this.feedback.visibleCount === 0) {
 			if (this.animationTimer) clearInterval(this.animationTimer);
 			this.animationTimer = undefined;
 			this.releaseStore?.();
@@ -101,13 +95,16 @@ abstract class CliThreadCommand extends SingletonAction {
 		const hold = this.holds.get(ev.action.id);
 		if (!hold) return;
 
-		const completed = performance.now() - hold.startedAt >= this.definition.holdMs;
-		const targetUnchanged =
-			this.store.selectedThreadId === hold.threadId && this.store.selectionRevision === hold.selectionRevision;
+		const evaluation = evaluateCommandHold(
+			hold,
+			this.store.selectedThreadId,
+			this.store.selectionRevision,
+			this.definition.holdMs,
+		);
 		this.clearHold(ev.action.id);
-		if (completed && targetUnchanged && this.canStart(hold.threadId, hold.selectionRevision, ev.action.id)) {
+		if (evaluation === "ready" && this.canStart(hold.threadId, hold.selectionRevision, ev.action.id)) {
 			await this.execute(ev.action, hold.threadId, hold.selectionRevision);
-		} else if (completed) {
+		} else if (evaluation === "ready") {
 			await this.showFeedback(ev.action, "unavailable");
 		} else {
 			await this.render(ev.action);
@@ -120,7 +117,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			return;
 		}
 		this.inFlightActionIds.add(action.id);
-		const appearanceGeneration = this.appearanceGenerations.get(action.id);
+		const appearanceGeneration = this.feedback.generation(action.id);
 		let result: CommandFeedbackKind = this.definition.successFeedback ?? "success";
 		let commandAccepted = false;
 		try {
@@ -140,11 +137,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			this.store.releaseThreadAction(threadId, commandAccepted ? (this.definition.cooldownMs ?? 0) : 0);
 		}
 		await this.showFeedback(action, result, appearanceGeneration);
-		if (
-			result === "error" &&
-			this.visibleActionIds.has(action.id) &&
-			this.appearanceGenerations.get(action.id) === appearanceGeneration
-		) {
+		if (result === "error" && this.feedback.isCurrent(action.id, appearanceGeneration)) {
 			await action.showAlert();
 		}
 	}
@@ -173,23 +166,17 @@ abstract class CliThreadCommand extends SingletonAction {
 	private async showFeedback(
 		action: KeyDownEvent["action"],
 		kind: CommandFeedbackKind,
-		expectedGeneration = this.appearanceGenerations.get(action.id),
+		expectedGeneration = this.feedback.generation(action.id),
 	): Promise<void> {
-		if (!this.visibleActionIds.has(action.id) || this.appearanceGenerations.get(action.id) !== expectedGeneration)
-			return;
-		const previousTimer = this.feedbackTimers.get(action.id);
-		if (previousTimer) clearTimeout(previousTimer);
-		this.feedback.set(action.id, kind);
-		await action.setImage(renderCommandFeedback(kind));
-		const timer = setTimeout(() => {
-			this.feedbackTimers.delete(action.id);
-			this.feedback.delete(action.id);
-			if (this.visibleActionIds.has(action.id)) {
-				logBackgroundError(this.render(action), `restore ${this.definition.label} feedback`);
-			}
-		}, 800);
-		timer.unref();
-		this.feedbackTimers.set(action.id, timer);
+		await this.feedback.show(
+			action,
+			kind,
+			renderCommandFeedback(kind),
+			() => this.render(action),
+			(error) =>
+				streamDeck.logger.error(`Unable to restore ${this.definition.label} feedback: ${getErrorMessage(error)}`),
+			expectedGeneration,
+		);
 	}
 
 	private clearHold(actionId: string): void {
@@ -198,10 +185,21 @@ abstract class CliThreadCommand extends SingletonAction {
 		this.holds.delete(actionId);
 	}
 
+	private cancelInvalidatedHolds(): void {
+		for (const [actionId, hold] of this.holds) {
+			const targetChanged =
+				evaluateCommandHold(hold, this.store.selectedThreadId, this.store.selectionRevision, this.definition.holdMs) ===
+				"invalidated";
+			if (targetChanged || !this.canStart(hold.threadId, hold.selectionRevision, actionId)) {
+				this.clearHold(actionId);
+			}
+		}
+	}
+
 	private async renderVisibleActions(): Promise<void> {
 		await Promise.all(
 			this.actions.map(async (action) => {
-				if (action.isKey() && this.visibleActionIds.has(action.id)) await this.render(action);
+				if (action.isKey() && this.feedback.isVisible(action.id)) await this.render(action);
 			}),
 		);
 	}
@@ -230,6 +228,10 @@ abstract class CliThreadCommand extends SingletonAction {
 		const blocked = Boolean(thread && this.store.isThreadActionBlocked(thread.id));
 		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
 		const missingExecutor = this.definition.requiresConnectedExecutor && !thread?.executorConnected;
+		const loading = Boolean(
+			thread &&
+			(thread.working || this.store.snapshot.connection === "connecting" || inFlight || threadInFlight || blocked),
+		);
 		const available = Boolean(
 			thread &&
 			!thread.working &&
@@ -261,7 +263,7 @@ abstract class CliThreadCommand extends SingletonAction {
 				dimmed: !available,
 				footer,
 				progress: hold ? progress : undefined,
-				loading: Boolean(thread && !available),
+				loading,
 				icon: this.definition.icon,
 			}),
 		);

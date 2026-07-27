@@ -7,7 +7,7 @@ import streamDeck, {
 	WillDisappearEvent,
 } from "@elgato/streamdeck";
 
-type PuckVariationSettings = {
+type ShowPuckSettings = {
 	puckNumber?: number;
 	/** Migrated from the original eight-variation implementation. */
 	puckIndex?: number;
@@ -42,14 +42,14 @@ const puckNames: Partial<Record<number, string>> = {
 const randomHoldMs = 750;
 
 @action({ UUID: "com.daniel-insley.amp-deck.puck-variation" })
-export class PuckVariation extends SingletonAction<PuckVariationSettings> {
+export class ShowPuck extends SingletonAction<ShowPuckSettings> {
 	private readonly currentNumbers = new Map<string, number>();
 	private readonly generations = new Map<string, number>();
 	private readonly pressedAt = new Map<string, number>();
 	private readonly titleTimers = new Map<string, NodeJS.Timeout>();
 	private readonly visibleActionIds = new Set<string>();
 
-	override async onWillAppear(ev: WillAppearEvent<PuckVariationSettings>): Promise<void> {
+	override async onWillAppear(ev: WillAppearEvent<ShowPuckSettings>): Promise<void> {
 		if (!ev.action.isKey()) return;
 
 		const generation = (this.generations.get(ev.action.id) ?? 0) + 1;
@@ -60,7 +60,7 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 		await Promise.all([ev.action.setSettings({ puckNumber }), ev.action.setImage(puckImage(puckNumber))]);
 	}
 
-	override onWillDisappear(ev: WillDisappearEvent<PuckVariationSettings>): void {
+	override onWillDisappear(ev: WillDisappearEvent<ShowPuckSettings>): void {
 		this.generations.set(ev.action.id, (this.generations.get(ev.action.id) ?? 0) + 1);
 		this.visibleActionIds.delete(ev.action.id);
 		this.currentNumbers.delete(ev.action.id);
@@ -70,12 +70,12 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 		this.titleTimers.delete(ev.action.id);
 	}
 
-	override onKeyDown(ev: KeyDownEvent<PuckVariationSettings>): void {
+	override onKeyDown(ev: KeyDownEvent<ShowPuckSettings>): void {
 		if (ev.action.isKey() && this.visibleActionIds.has(ev.action.id))
 			this.pressedAt.set(ev.action.id, performance.now());
 	}
 
-	override async onKeyUp(ev: KeyUpEvent<PuckVariationSettings>): Promise<void> {
+	override async onKeyUp(ev: KeyUpEvent<ShowPuckSettings>): Promise<void> {
 		if (!ev.action.isKey()) return;
 
 		const generation = this.generations.get(ev.action.id);
@@ -97,7 +97,7 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 		const timer = setTimeout(() => {
 			this.titleTimers.delete(ev.action.id);
 			void ev.action.setTitle("").catch((error) => {
-				streamDeck.logger.error(`Unable to clear Puck Variation title: ${getErrorMessage(error)}`);
+				streamDeck.logger.error(`Unable to clear Show Puck title: ${getErrorMessage(error)}`);
 			});
 		}, 1200);
 		timer.unref();
@@ -105,7 +105,7 @@ export class PuckVariation extends SingletonAction<PuckVariationSettings> {
 	}
 }
 
-function resolvePuckNumber(settings: PuckVariationSettings): number | undefined {
+function resolvePuckNumber(settings: ShowPuckSettings): number | undefined {
 	if (isPuckNumber(settings.puckNumber)) return settings.puckNumber;
 	if (isLegacyPuckIndex(settings.puckIndex)) return legacyPuckNumbers[settings.puckIndex];
 	return undefined;

@@ -2,6 +2,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
+import { rmSync } from "node:fs";
 import path from "node:path";
 import url from "node:url";
 
@@ -21,6 +22,15 @@ const config = {
 		},
 	},
 	plugins: [
+		{
+			name: "clean-production-output",
+			buildStart() {
+				if (isWatching) return;
+				for (const fileName of ["plugin.js", "plugin.js.map", "package.json"]) {
+					rmSync(path.resolve(sdPlugin, "bin", fileName), { force: true });
+				}
+			},
+		},
 		{
 			name: "svg-as-string",
 			transform(source, id) {

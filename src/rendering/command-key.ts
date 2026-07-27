@@ -2,6 +2,7 @@ import commandFeedbackTemplate from "../assets/command-feedback.svg";
 import commandKeyTemplate from "../assets/command-key.svg";
 import openThreadKeyTemplate from "../assets/open-thread-key.svg";
 import { renderSvgTemplate, svgDataUrl } from "./svg-template";
+import { escapeXml, truncateText } from "./text";
 
 export function renderCommandKey(options: {
 	label: string;
@@ -25,7 +26,7 @@ export function renderCommandKey(options: {
 			<circle cx="72" cy="72" r="15" fill="none" stroke="#595959" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="59 35"/>
 		</g>`
 		: "";
-	const detailMarkup = `<text x="72" y="105" fill="#27251D" opacity="${opacity}" font-family="Segoe UI, sans-serif" font-size="13" font-weight="500" text-anchor="middle">${escapeXml(truncate(options.detail, 15))}</text>`;
+	const detailMarkup = `<text x="72" y="105" fill="#27251D" opacity="${opacity}" font-family="Segoe UI, sans-serif" font-size="13" font-weight="500" text-anchor="middle">${escapeXml(truncateText(options.detail, 15))}</text>`;
 	const headerMarkup = renderActionHeader(options.icon, options.label, opacity, 34);
 	const progressMarkup =
 		options.progress === undefined
@@ -48,7 +49,7 @@ export function renderCommandKey(options: {
 
 export function renderOpenThreadKey(options: { title?: string; dimmed: boolean }): string {
 	const opacity = options.dimmed ? 0.4 : 1;
-	const title = truncate(options.title ?? "NO THREAD", 15);
+	const title = truncateText(options.title ?? "NO THREAD", 15);
 	return svgDataUrl(renderSvgTemplate(openThreadKeyTemplate, { opacity, title: escapeXml(title) }));
 }
 
@@ -90,17 +91,4 @@ function renderActionHeader(
 		<g transform="translate(58 ${iconY}) scale(1.1667)" fill="none" stroke="#595959" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>
 		<text x="72" y="${iconY + 49}" fill="#0B0D0B" font-size="18" font-weight="700" text-anchor="middle">${escapeXml(label)}</text>
 	</g>`;
-}
-
-function truncate(value: string, length: number): string {
-	return value.length > length ? `${value.slice(0, length - 1)}…` : value;
-}
-
-function escapeXml(value: string): string {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&apos;");
 }

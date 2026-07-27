@@ -12,7 +12,7 @@ Amp Deck turns a Stream Deck into a compact command center for [Amp](https://amp
 - Shares one selected thread across the status display and all thread command keys.
 - Displays the selected thread's project, title, activity, executor state, last update, and usage cost when available.
 - Adds deliberate hold-to-confirm controls for review, shipping, and archive operations.
-- Includes an optional Puck Variation key with 138 bundled variations.
+- Includes an optional Show Puck key with 138 bundled variations.
 
 Amp Deck reads thread data and sends commands through the Amp CLI running under your desktop user account. There is no separate Amp Deck account, token field, or pairing service.
 
@@ -91,8 +91,8 @@ All thread controls target the thread selected on the **Thread Status** action. 
 | **Review Thread**  | Hold for 1 second              | Continue the selected thread with a focused request to review current changes, fix high-confidence issues, and report risks. Requires a connected executor; a 10-second shared cooldown prevents accidental or conflicting commands.       |
 | **Ship Thread**    | Hold for 2 seconds             | Continue the selected thread with a guarded request to run the repository's configured shipping workflow. Requires a connected executor; the command adds the permanent `shipping` label while Amp Deck tracks active shipping separately. |
 | **Archive Thread** | Hold for 1.5 seconds           | Archive the selected thread through the Amp CLI.                                                                                                                                                                                           |
-| **Puck Variation** | Press the key                  | Advance to the next bundled variation.                                                                                                                                                                                                     |
-| **Puck Variation** | Hold for at least 0.75 seconds | Choose a different bundled variation at random.                                                                                                                                                                                            |
+| **Show Puck**      | Press the key                  | Advance to the next bundled variation.                                                                                                                                                                                                     |
+| **Show Puck**      | Hold for at least 0.75 seconds | Choose a different bundled variation at random.                                                                                                                                                                                            |
 
 The command keys show hold progress and brief success, sent, unavailable, or error feedback. Releasing a command key before its hold completes cancels the operation.
 

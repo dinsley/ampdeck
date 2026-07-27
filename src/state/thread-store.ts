@@ -7,6 +7,7 @@ type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
 type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
 
 const usageRetryDelaysMs = [1_000, 5_000, 15_000];
+const shippingLabelsRefreshIntervalMs = 60_000;
 
 export class ThreadStore {
 	private readonly actionCooldownTimers = new Map<string, NodeJS.Timeout>();
@@ -33,10 +34,12 @@ export class ThreadStore {
 		this.runCommand = runCommand;
 		this.source.onSnapshot((snapshot) => {
 			const previous = this.selectedThread;
+			const connectionBecameLive = this.topSnapshot.connection !== "live" && snapshot.connection === "live";
 			this.topSnapshot = snapshot;
 			if (snapshot.connection === "live") this.reconcileShippingDispatches();
 			this.rebuildSnapshot();
 			if (reachedUsageBoundary(previous, this.selectedThread)) this.scheduleUsageRetries();
+			if (connectionBecameLive && this.users > 0) void this.refreshShippingLabels();
 		});
 	}
 
@@ -84,7 +87,7 @@ export class ThreadStore {
 		this.users += 1;
 		if (this.users === 1) {
 			this.source.start();
-			this.shippingLabelsTimer = setInterval(() => void this.refreshShippingLabels(), 5_000);
+			this.shippingLabelsTimer = setInterval(() => void this.refreshShippingLabels(), shippingLabelsRefreshIntervalMs);
 			this.shippingLabelsTimer.unref();
 			this.usageTimer = setInterval(() => void this.refreshSelectedUsage(), 30_000);
 			this.usageTimer.unref();

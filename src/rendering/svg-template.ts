@@ -3,5 +3,5 @@ export function renderSvgTemplate(template: string, values: Record<string, strin
 }
 
 export function svgDataUrl(svg: string): string {
-	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	return `data:image/svg+xml,${encodeURIComponent(svg.toWellFormed())}`;
 }

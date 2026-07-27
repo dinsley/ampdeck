@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import streamDeck from "@elgato/streamdeck";
 
-const maximumOutputBytes = 64 * 1024;
+const maximumOutputBytes = 2 * 1024 * 1024;
 const maximumErrorBytes = 4 * 1024;
 const maximumAcceptanceRecordBytes = 1024 * 1024;
 const commandAcceptanceTimeoutMs = 30_000;

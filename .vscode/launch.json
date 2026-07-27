@@ -9,7 +9,7 @@
 			"type": "node",
 			"request": "attach",
 			"processId": "${command:PickProcess}",
-			"outFiles": ["${workspaceFolder}/bin/**/*.js"],
+			"outFiles": ["${workspaceFolder}/com.daniel-insley.amp-deck.sdPlugin/bin/**/*.js"],
 			"resolveSourceMapLocations": ["${workspaceFolder}/**"]
 		}
 	]

@@ -40,10 +40,10 @@
 			]
 		},
 		{
-			"Name": "Puck Variation",
+			"Name": "Show Puck",
 			"UUID": "com.daniel-insley.amp-deck.puck-variation",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Shows a Puck variation; press for next, or hold for a random variation.",
+			"Tooltip": "Shows a Puck; press for next, or hold for a random variation.",
 			"Controllers": ["Keypad"],
 			"States": [
 				{

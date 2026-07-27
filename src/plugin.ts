@@ -3,19 +3,21 @@ import streamDeck from "@elgato/streamdeck";
 import { ArchiveThread, ReviewThread, ShipThread } from "./actions/cli-thread-command";
 import { EncoderStatus } from "./actions/encoder-status";
 import { OpenThread } from "./actions/open-thread";
-import { PuckVariation } from "./actions/puck-variation";
+import { ShowPuck } from "./actions/puck-variation";
 import { ThreadStore } from "./state/thread-store";
 
 const threadStore = new ThreadStore();
 
 streamDeck.actions.registerAction(new EncoderStatus(threadStore));
 streamDeck.actions.registerAction(new OpenThread(threadStore));
-streamDeck.actions.registerAction(new PuckVariation());
+streamDeck.actions.registerAction(new ShowPuck());
 streamDeck.actions.registerAction(new ShipThread(threadStore));
 streamDeck.actions.registerAction(new ArchiveThread(threadStore));
 streamDeck.actions.registerAction(new ReviewThread(threadStore));
 
-void streamDeck.connect();
+void streamDeck.connect().catch((error: unknown) => {
+	streamDeck.logger.error(`Unable to connect Amp Deck to Stream Deck: ${getErrorMessage(error)}`);
+});
 
 let shuttingDown = false;
 function shutdown(): void {
@@ -27,3 +29,7 @@ function shutdown(): void {
 
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
