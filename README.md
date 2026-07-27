@@ -220,7 +220,7 @@ Useful development commands:
 | `npm run docs:screenshots` | Regenerate the README screenshots from the real SVG templates. |
 | `npm run pack`             | Build a local `.streamDeckPlugin` installer in `dist`.         |
 | `npm test`                 | Run the Node.js test suite.                                    |
-| `npm run lint`             | Run ESLint with zero warnings allowed.                         |
+| `npm run lint`             | Run type-aware Oxlint with zero warnings allowed.              |
 | `npm run typecheck`        | Type-check without emitting files.                             |
 | `npm run format`           | Format the repository with Prettier.                           |
 | `npm run verify:notices`   | Confirm bundled dependencies appear in third-party notices.    |
@@ -249,7 +249,6 @@ Amp Deck bundles the following third-party runtime software:
 - `@elgato/schemas` 0.4.15 — Copyright (c) 2023 Corsair Memory Inc.
 - `@elgato/utils` 0.4.5 — Copyright (c) Corsair Memory Inc.
 - `entities` 8.0.0 — Copyright (c) Felix Böhm.
-- `tslib` 2.8.1 — Copyright (c) Microsoft Corporation.
 - `zod` 3.25.76 — Copyright (c) 2025 Colin McDonnell.
 - `ws` 8.21.1 — Copyright (c) 2011 Einar Otto Stangvik; Copyright (c) 2013 Arnout Kazemier and contributors; Copyright (c) 2016 Luigi Pinca and contributors.
 
@@ -280,24 +279,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-</details>
-
-<details>
-<summary>0BSD license used by tslib</summary>
-
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
 
 </details>
 

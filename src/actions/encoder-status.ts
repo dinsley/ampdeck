@@ -1,10 +1,10 @@
 import streamDeck, {
 	action,
-	DialRotateEvent,
 	SingletonAction,
-	TouchTapEvent,
-	WillAppearEvent,
-	WillDisappearEvent,
+	type DialRotateEvent,
+	type TouchTapEvent,
+	type WillAppearEvent,
+	type WillDisappearEvent,
 } from "@elgato/streamdeck";
 
 import encoderEmptyTemplate from "../assets/encoder-empty.svg";

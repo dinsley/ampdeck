@@ -1,10 +1,10 @@
 import streamDeck, {
 	action,
-	KeyDownEvent,
-	KeyUpEvent,
 	SingletonAction,
-	WillAppearEvent,
-	WillDisappearEvent,
+	type KeyDownEvent,
+	type KeyUpEvent,
+	type WillAppearEvent,
+	type WillDisappearEvent,
 } from "@elgato/streamdeck";
 
 import { launchAmpCommand, runAmpCommand } from "../amp/amp-command";

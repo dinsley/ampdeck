@@ -1,9 +1,9 @@
 import streamDeck, {
 	action,
-	KeyDownEvent,
 	SingletonAction,
-	WillAppearEvent,
-	WillDisappearEvent,
+	type KeyDownEvent,
+	type WillAppearEvent,
+	type WillDisappearEvent,
 } from "@elgato/streamdeck";
 
 import { isAmpThreadUrl } from "../amp/thread-url";
