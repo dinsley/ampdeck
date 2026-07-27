@@ -6,7 +6,7 @@ Amp Deck puts your active [Amp](https://ampcode.com/) threads on a Stream Deck+.
 
 ## What you can do
 
-- See all unarchived threads and their live state on the Stream Deck+ touch strip.
+- See active, unarchived threads reported by Amp and their live state on the Stream Deck+ touch strip.
 - Rotate any encoder to choose a thread; all Amp Deck keys follow the same selection.
 - Open the selected thread in your default browser.
 - Ask the selected thread to review changes or run its repository's shipping workflow.
@@ -16,41 +16,32 @@ Amp Deck puts your active [Amp](https://ampcode.com/) threads on a Stream Deck+.
 
 Amp Deck talks to the Amp CLI already installed on your computer. It does not need a separate account, API key, token, or pairing step.
 
+Amp Deck uses Amp's experimental live thread inventory (`amp top --stream-jsonl`). Keep Amp up to date; if that schema changes incompatibly, Amp Deck fails closed and disables thread commands until it receives a valid snapshot.
+
 ## Before you start
 
 You will need:
 
 - a **Stream Deck+** for the complete four-encoder status display;
 - **Stream Deck 7.1 or newer**;
-- **macOS 12 or newer**, or **Windows 10 or newer**;
-- the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account; and
-- **Node.js 24 or newer** while building this source release.
+- **macOS 13.5 or newer**, or **Windows 10 or newer**;
+- the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account.
 
-Key actions such as Open, Review, Ship, Archive, and Show Puck also work on Stream Deck devices without encoders. Selecting threads and viewing the complete status surface require Stream Deck+.
+Show Puck works on Stream Deck devices without encoders. Thread Status and the shared thread selection used by Open, Review, Ship, and Archive require Stream Deck+.
 
-## Install from source
+## Supported platforms
 
-Clone the project, install its dependencies, build it, and link it to Stream Deck:
+- macOS 13.5 or newer
+- Windows 10 or newer
 
-```shell
-git clone https://github.com/dinsley/ampdeck.git
-cd ampdeck
-npm ci
-npm run build
-npx streamdeck link com.dinsley.ampdeck.sdPlugin
-```
+## Install Amp Deck
 
-If Amp Deck does not appear in the Stream Deck action list, restart the plugin:
+1. Open the [latest Amp Deck release](https://github.com/dinsley/ampdeck/releases/latest).
+2. Download `com.dinsley.ampdeck.streamDeckPlugin`.
+3. Open the downloaded file and approve the installation in Stream Deck.
+4. Confirm that **Amp Deck** appears in the Stream Deck action list.
 
-```shell
-npx streamdeck restart com.dinsley.ampdeck
-```
-
-To remove the development link later:
-
-```shell
-npx streamdeck unlink com.dinsley.ampdeck
-```
+If you prefer to build the plugin yourself, see [For contributors](#for-contributors).
 
 ## Set up your Stream Deck
 
@@ -74,13 +65,13 @@ Amp Deck uses the Amp CLI and account already available on your computer. There 
 
 The Thread Status display is the center of the plugin:
 
-| Control                    | What it does                                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Rotate any encoder         | Browse unarchived threads and select the thread now on screen. Shipping and working threads appear first. |
-| Press any encoder          | Keep the visible thread selected.                                                                         |
-| Tap the touch strip        | Keep the visible thread selected.                                                                         |
-| Long-press the touch strip | Open the visible thread on `ampcode.com`.                                                                 |
-| Press **Open Thread**      | Open the selected thread in your default browser.                                                         |
+| Control                    | What it does                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Rotate any encoder         | Browse active threads and select the thread now on screen. Shipping and working threads appear first. |
+| Press any encoder          | Keep the visible thread selected.                                                                     |
+| Tap the touch strip        | Keep the visible thread selected.                                                                     |
+| Long-press the touch strip | Open the visible thread on `ampcode.com`.                                                             |
+| Press **Open Thread**      | Open the selected thread in your default browser.                                                     |
 
 ### Run a thread action
 
@@ -145,7 +136,7 @@ npx streamdeck restart com.dinsley.ampdeck
 
 ### The display says `NO ACTIVE THREADS`
 
-Amp is connected, but it cannot find an unarchived thread. Create or unarchive a thread, then give the display a moment to refresh.
+Amp is connected, but `amp top` currently reports no active threads. Start or continue an unarchived thread, then give the display a moment to refresh.
 
 ### A command says `UNAVAILABLE`
 
@@ -174,10 +165,13 @@ Development builds write logs inside the linked `.sdPlugin` directory's `logs` f
 ## Safety and privacy
 
 - Authentication stays with the local Amp CLI; Amp Deck does not store its own API key.
+- Amp Deck does not include analytics, telemetry, advertising, or a developer-operated network service.
 - Thread links are opened only when they are HTTPS URLs on `ampcode.com`.
 - Review and Ship can edit files or interact with repository workflows under the selected thread's normal permissions and project guidance.
 - Archive changes the thread's server-side archive state as soon as the hold completes.
 - If Stream Deck closes while a command is running, check the Amp thread before trying again.
+
+See the complete [Amp Deck privacy statement](./PRIVACY.md).
 
 ## Credits and attribution
 
@@ -185,12 +179,27 @@ All bundled Puck images, the Puck icon, other Amp-derived iconography, and the d
 
 Amp, Amp Code, Puck, their associated artwork and icons, and their visual design language belong to their respective owners. Amp Deck is an independent project and is not affiliated with or endorsed by Amp / Amp Code.
 
+## License
+
+Amp Deck's original code and documentation are available under the [MIT License](./LICENSE).
+
+The MIT License does not apply to bundled third-party software, Puck artwork, Amp-derived iconography, trademarks, or design elements. Those materials remain subject to their respective owners' rights and the notices below.
+
 ## For contributors
 
-Install dependencies and run the complete project check:
+Building Amp Deck requires Node.js 24 or newer. Clone the project, install its dependencies, build it, and link it to Stream Deck:
 
 ```shell
+git clone https://github.com/dinsley/ampdeck.git
+cd ampdeck
 npm ci
+npm run build
+npx streamdeck link com.dinsley.ampdeck.sdPlugin
+```
+
+Then run the complete project check:
+
+```shell
 npm run check
 ```
 
@@ -205,21 +214,32 @@ npm run watch
 
 Useful development commands:
 
-| Command                                          | Purpose                                                        |
-| ------------------------------------------------ | -------------------------------------------------------------- |
-| `npm run build`                                  | Build the production plugin bundle.                            |
-| `npm run pack`                                   | Build a local `.streamDeckPlugin` installer in `dist`.         |
-| `npm test`                                       | Run the Node.js test suite.                                    |
-| `npm run lint`                                   | Run ESLint with zero warnings allowed.                         |
-| `npm run typecheck`                              | Type-check without emitting files.                             |
-| `npm run format`                                 | Format the repository with Prettier.                           |
-| `npm run validate`                               | Validate the plugin manifest, assets, and layouts.             |
-| `npx tsx scripts/generate-readme-screenshots.ts` | Regenerate the README screenshots from the real SVG templates. |
+| Command                    | Purpose                                                        |
+| -------------------------- | -------------------------------------------------------------- |
+| `npm run build`            | Build the production plugin bundle.                            |
+| `npm run docs:screenshots` | Regenerate the README screenshots from the real SVG templates. |
+| `npm run pack`             | Build a local `.streamDeckPlugin` installer in `dist`.         |
+| `npm test`                 | Run the Node.js test suite.                                    |
+| `npm run lint`             | Run ESLint with zero warnings allowed.                         |
+| `npm run typecheck`        | Type-check without emitting files.                             |
+| `npm run format`           | Format the repository with Prettier.                           |
+| `npm run verify:notices`   | Confirm bundled dependencies appear in third-party notices.    |
+| `npm run verify:versions`  | Confirm package and Stream Deck versions match.                |
+| `npm run validate`         | Validate the plugin manifest, assets, and layouts.             |
 
-To prepare a GitHub release, update the version in `package.json`, commit the
-change, and push a matching `vMAJOR.MINOR.PATCH` tag. The release workflow runs
-the complete project check, packages the plugin with the corresponding Stream
-Deck version, and attaches the installer to a new GitHub Release.
+To remove the development link:
+
+```shell
+npx streamdeck unlink com.dinsley.ampdeck
+```
+
+To prepare a GitHub release, update the version in `package.json` and the four-part
+version in `manifest.json`, commit the change, and push a matching
+`vMAJOR.MINOR.PATCH` tag. The release workflow runs the complete project check,
+packages the plugin, generates a checksum and build provenance attestation, and
+assembles the release as a draft before publishing the installer.
+
+Please report security concerns according to [SECURITY.md](./SECURITY.md).
 
 ## Third-party notices
 
@@ -228,13 +248,20 @@ Amp Deck bundles the following third-party runtime software:
 - `@elgato/streamdeck` 2.1.0 — Copyright (c) Corsair Memory Inc.
 - `@elgato/schemas` 0.4.15 — Copyright (c) 2023 Corsair Memory Inc.
 - `@elgato/utils` 0.4.5 — Copyright (c) Corsair Memory Inc.
-- `zod` 3.25.76 — Copyright (c) 2025 Colin McDonnell.
-- `ws` 8.21.1 — Copyright (c) 2011 Einar Otto Stangvik; Copyright (c) 2013 Arnout Kazemier and contributors; Copyright (c) 2016 Luigi Pinca and contributors.
 - `entities` 8.0.0 — Copyright (c) Felix Böhm.
 - `tslib` 2.8.1 — Copyright (c) Microsoft Corporation.
+- `zod` 3.25.76 — Copyright (c) 2025 Colin McDonnell.
+- `ws` 8.21.1 — Copyright (c) 2011 Einar Otto Stangvik; Copyright (c) 2013 Arnout Kazemier and contributors; Copyright (c) 2016 Luigi Pinca and contributors.
 
 <details>
-<summary>MIT License — Elgato packages, Zod, and ws</summary>
+<summary>MIT license used by the Elgato packages, zod, and ws</summary>
+
+Copyright (c) Corsair Memory Inc.<br>
+Copyright (c) 2023 Corsair Memory Inc.<br>
+Copyright (c) 2025 Colin McDonnell<br>
+Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com><br>
+Copyright (c) 2013 Arnout Kazemier and contributors<br>
+Copyright (c) 2016 Luigi Pinca and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -257,9 +284,27 @@ SOFTWARE.
 </details>
 
 <details>
-<summary>BSD 2-Clause License — entities</summary>
+<summary>0BSD license used by tslib</summary>
 
-Copyright (c) Felix Böhm
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+</details>
+
+<details>
+<summary>BSD 2-Clause license used by entities</summary>
+
+Copyright (c) Felix Böhm<br>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -272,33 +317,15 @@ Redistributions in binary form must reproduce the above copyright notice, this
 list of conditions and the following disclaimer in the documentation and/or
 other materials provided with the distribution.
 
-THIS IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+THIS IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
 ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-</details>
-
-<details>
-<summary>0BSD License — tslib</summary>
-
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any purpose
-with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-THIS SOFTWARE.
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 </details>

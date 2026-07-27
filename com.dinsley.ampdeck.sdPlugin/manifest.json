@@ -7,6 +7,7 @@
 		{
 			"Name": "Thread Status",
 			"UUID": "com.dinsley.ampdeck.status",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/status",
 			"Tooltip": "Displays one selected Amp thread across all four Stream Deck+ encoders.",
 			"Controllers": ["Encoder"],
@@ -29,6 +30,7 @@
 		{
 			"Name": "Open Thread",
 			"UUID": "com.dinsley.ampdeck.open-thread",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/open-thread",
 			"Tooltip": "Opens the selected Amp thread.",
 			"Controllers": ["Keypad"],
@@ -42,6 +44,7 @@
 		{
 			"Name": "Show Puck",
 			"UUID": "com.dinsley.ampdeck.show-puck",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/puck",
 			"Tooltip": "Shows a Puck; press for next, or hold for a random variation.",
 			"Controllers": ["Keypad"],
@@ -55,32 +58,41 @@
 		{
 			"Name": "Ship Thread",
 			"UUID": "com.dinsley.ampdeck.ship",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/ship",
-			"Tooltip": "Hold for two seconds to request the repository's shipping workflow.",
+			"Tooltip": "Hold to request the repository's shipping workflow.",
 			"Controllers": ["Keypad"],
+			"SupportedInKeyLogicActions": false,
+			"SupportedInMultiActions": false,
 			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		},
 		{
 			"Name": "Archive Thread",
 			"UUID": "com.dinsley.ampdeck.archive",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/archive",
-			"Tooltip": "Hold for 1.5 seconds to archive the selected thread through the Amp CLI.",
+			"Tooltip": "Hold to archive the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
+			"SupportedInKeyLogicActions": false,
+			"SupportedInMultiActions": false,
 			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		},
 		{
 			"Name": "Review Thread",
 			"UUID": "com.dinsley.ampdeck.review-thread",
+			"UserTitleEnabled": false,
 			"Icon": "imgs/actions/review",
-			"Tooltip": "Hold for one second to request a review in the selected thread through the Amp CLI.",
+			"Tooltip": "Hold to request a review in the selected thread through the Amp CLI.",
 			"Controllers": ["Keypad"],
+			"SupportedInKeyLogicActions": false,
+			"SupportedInMultiActions": false,
 			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
 		}
 	],
 	"Category": "Amp Deck",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "A physical command center for Amp Code.",
+	"Description": "Monitor active Amp Code threads and run common thread actions from Stream Deck+.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {
@@ -89,7 +101,7 @@
 	"OS": [
 		{
 			"Platform": "mac",
-			"MinimumVersion": "12"
+			"MinimumVersion": "13.5"
 		},
 		{
 			"Platform": "windows",
@@ -99,6 +111,6 @@
 	"Nodejs": {
 		"Version": "24"
 	},
-	"SupportURL": "https://github.com/dinsley/ampdeck",
+	"SupportURL": "https://github.com/dinsley/ampdeck/issues",
 	"UUID": "com.dinsley.ampdeck"
 }

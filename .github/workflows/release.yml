@@ -7,15 +7,22 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
@@ -41,12 +48,41 @@ jobs:
       - name: Pack Stream Deck plugin
         run: npm run pack -- --version "${{ steps.version.outputs.number }}"
 
-      - name: Create GitHub release
+      - name: Generate checksum
+        run: >-
+          sha256sum dist/com.dinsley.ampdeck.streamDeckPlugin
+          > dist/com.dinsley.ampdeck.streamDeckPlugin.sha256
+
+      - name: Attest plugin
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: dist/com.dinsley.ampdeck.streamDeckPlugin
+
+      - name: Create or update draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          dist/com.dinsley.ampdeck.streamDeckPlugin
-          --generate-notes
-          --title "Amp Deck ${{ steps.version.outputs.number }}"
-          --verify-tag
+        shell: bash
+        run: |
+          plugin="dist/com.dinsley.ampdeck.streamDeckPlugin"
+          checksum="$plugin.sha256"
+
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            draft="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" --jq .draft)"
+            if [[ "$draft" != "true" ]]; then
+              echo "::error::Release $GITHUB_REF_NAME is already published and will not be modified."
+              exit 1
+            fi
+
+            gh release upload "$GITHUB_REF_NAME" "$plugin" "$checksum" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$plugin" "$checksum" \
+              --generate-notes \
+              --title "Amp Deck ${{ steps.version.outputs.number }}" \
+              --draft \
+              --verify-tag
+          fi
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false
