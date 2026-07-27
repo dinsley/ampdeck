@@ -19,6 +19,7 @@ import { renderEncoderFocusSurfaceSvg } from "../src/rendering/encoder-surface";
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const outputDirectory = resolve(repositoryRoot, "docs", "images");
 const encoderTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "encoder-focus.svg"), "utf8");
+const orbIconTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "orb.svg"), "utf8");
 const commandKeyTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "command-key.svg"), "utf8");
 const commandFeedbackTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "command-feedback.svg"), "utf8");
 const openThreadKeyTemplate = readFileSync(resolve(repositoryRoot, "src", "assets", "open-thread-key.svg"), "utf8");
@@ -208,7 +209,7 @@ function threadState(options: {
 	};
 	return {
 		model,
-		surface: renderEncoderFocusSurfaceSvg(encoderTemplate, {
+		surface: renderEncoderFocusSurfaceSvg(encoderTemplate, orbIconTemplate, {
 			thread,
 			model,
 			animationFrame: 3,

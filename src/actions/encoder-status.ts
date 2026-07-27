@@ -9,6 +9,7 @@ import streamDeck, {
 
 import encoderEmptyTemplate from "../assets/encoder-empty.svg";
 import encoderFocusTemplate from "../assets/encoder-focus.svg";
+import orbIconTemplate from "../assets/orb.svg";
 import type { AmpTopSnapshot, AmpTopThread } from "../amp/amp-top-source";
 import { isAmpThreadUrl } from "../amp/thread-url";
 import { getErrorMessage } from "../error-message";
@@ -209,7 +210,7 @@ export class EncoderStatus extends SingletonAction {
 		const threadIndex = orderedThreads.findIndex((candidate) => candidate.id === thread.id);
 		const phase = this.phaseMetadata.get(thread.id);
 		return action.setFeedback({
-			canvas: renderEncoderFocusSlice(encoderFocusTemplate, {
+			canvas: renderEncoderFocusSlice(encoderFocusTemplate, orbIconTemplate, {
 				column,
 				thread,
 				model,
