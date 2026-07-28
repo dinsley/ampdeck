@@ -28,7 +28,9 @@ Amp Deck puts active [Amp](https://ampcode.com/) threads on a [Stream Deck+]. Th
 - a **[Stream Deck+]**;
 - **Stream Deck 7.1 or newer**;
 - **macOS 13.5 or newer**, or **Windows 10 or newer**;
-- the current [Amp CLI](https://ampcode.com/manual), signed in to your Amp account.
+- [Amp CLI](https://ampcode.com/manual) `0.0.1785170481` or newer, signed in to your Amp account.
+
+Amp Deck discovers Amp automatically. To use another installation, open the [diagnostics property inspector](#diagnostics-and-troubleshooting) and save a custom absolute executable path; paths containing spaces are supported. Reset the setting to restore automatic discovery.
 
 ### Supported devices
 
@@ -90,6 +92,19 @@ Hold Review, Ship, or Archive until the progress bar fills. Release early to can
 | **Show Puck**      | Press or hold | Press for the next bundled variation, or hold to choose one at random.              |
 
 Review and Ship need a connected executor. Thread commands stay unavailable while the selected thread is working, shipping, offline, or already handling another command. A short cooldown after dispatch prevents duplicate requests.
+
+## Diagnostics and troubleshooting
+
+Diagnostics are in the Stream Deck desktop application's property inspector. They are not a separate menu item and do not appear on the physical device.
+
+1. Open the Stream Deck desktop application and switch to a profile containing Amp Deck.
+2. Select an **Amp Deck action already placed on a key or encoder** in the device preview. Clicking only the Amp Deck category in the action list does not open it.
+3. Stream Deck automatically opens the action's configuration/property-inspector pane beside or below the device preview, depending on the app version and window size.
+4. Find **Amp Deck diagnostics** in that pane. From there, refresh health information, run the Amp CLI compatibility test, configure an executable, copy a sanitized report, or open the troubleshooting guide.
+
+If the pane does not appear, add any Amp Deck action to the current profile, select the placed action, and maximize or widen the Stream Deck window. Deselecting and reselecting the action can also reopen it.
+
+See [Troubleshooting Amp Deck](./docs/troubleshooting.md) for the recommended diagnostic workflow, common failure states, and support-report privacy details.
 
 ## Thread states
 
