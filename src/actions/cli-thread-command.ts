@@ -7,7 +7,6 @@ import streamDeck, {
 	type WillDisappearEvent,
 } from "@elgato/streamdeck";
 
-import { launchAmpCommand, runAmpCommand } from "../amp/amp-command";
 import { getErrorMessage } from "../error-message";
 import { busyIndicatorFrameDurationMs } from "../rendering/busy-indicator";
 import { renderCommandFeedback, renderCommandKey, type CommandFeedbackKind } from "../rendering/command-key";
@@ -135,6 +134,7 @@ abstract class CliThreadCommand extends SingletonAction {
 			}
 		} catch (error) {
 			logger.warn(`${this.definition.label} command failed: ${getErrorMessage(error)}`);
+			this.store.recordCommandError(error);
 			result = "error";
 		} finally {
 			this.inFlightActionIds.delete(action.id);
@@ -148,6 +148,7 @@ abstract class CliThreadCommand extends SingletonAction {
 	}
 
 	private isTargetReady(threadId: string, selectionRevision: number): boolean {
+		if (!this.store.commandAvailability.enabled) return false;
 		const thread = this.store.snapshot.threads.find((candidate) => candidate.id === threadId);
 		const unavailable = this.definition.unavailableWhileShipping && thread?.phase === "shipping";
 		const missingExecutor = this.definition.requiresConnectedExecutor && !thread?.executorConnected;
@@ -271,7 +272,7 @@ export class ArchiveThread extends CliThreadCommand {
 			icon: "archive",
 			holdMs: 1500,
 			unavailableWhileShipping: true,
-			execute: (threadId) => runAmpCommand(["--no-color", "threads", "archive", threadId]),
+			execute: (threadId) => store.runThreadCommand(["--no-color", "threads", "archive", threadId]),
 		});
 	}
 }
@@ -288,7 +289,7 @@ export class ReviewThread extends CliThreadCommand {
 			unavailableWhileShipping: true,
 			requiresConnectedExecutor: true,
 			execute: (threadId) =>
-				launchAmpCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId], threadId),
+				store.launchThreadCommand(["--no-color", "--execute", reviewPrompt, "threads", "continue", threadId], threadId),
 		});
 	}
 }
@@ -306,7 +307,7 @@ export class ShipThread extends CliThreadCommand {
 			cooldownMs: 10_000,
 			onAccepted: (threadId) => store.markShippingDispatched(threadId),
 			execute: (threadId) =>
-				launchAmpCommand(["--no-color", "--execute", shipPrompt, "threads", "continue", threadId], threadId),
+				store.launchThreadCommand(["--no-color", "--execute", shipPrompt, "threads", "continue", threadId], threadId),
 		});
 	}
 }

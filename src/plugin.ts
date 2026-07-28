@@ -5,11 +5,20 @@ import { EncoderStatus } from "./actions/encoder-status";
 import { OpenThread } from "./actions/open-thread";
 import { ShowPuck } from "./actions/show-puck";
 import { getErrorMessage } from "./error-message";
-import { streamDeckShippingStatePersistence } from "./state/shipping-persistence";
+import { DiagnosticsController } from "./diagnostics/diagnostics-controller";
+import { AmpCliManager } from "./amp/amp-cli-manager";
+import { AmpTopSource } from "./amp/amp-top-source";
+import { streamDeckExecutableSettings, streamDeckShippingStatePersistence } from "./state/shipping-persistence";
 import { ThreadStore } from "./state/thread-store";
 
 const logger = streamDeck.logger.createScope("Plugin");
-const threadStore = new ThreadStore({ shippingPersistence: streamDeckShippingStatePersistence });
+const cliManager = new AmpCliManager(streamDeckExecutableSettings);
+const threadStore = new ThreadStore({
+	source: new AmpTopSource(cliManager),
+	manager: cliManager,
+	shippingPersistence: streamDeckShippingStatePersistence,
+});
+new DiagnosticsController(threadStore, cliManager);
 
 streamDeck.actions.registerAction(new EncoderStatus(threadStore));
 streamDeck.actions.registerAction(new OpenThread(threadStore));
@@ -21,7 +30,10 @@ streamDeck.actions.registerAction(new ReviewThread(threadStore));
 logger.info("Starting Amp Deck");
 void streamDeck
 	.connect()
-	.then(() => logger.info("Connected to Stream Deck"))
+	.then(async () => {
+		logger.info("Connected to Stream Deck");
+		await cliManager.initialize();
+	})
 	.catch((error: unknown) => {
 		logger.error(`Unable to connect to Stream Deck: ${getErrorMessage(error)}`);
 	});

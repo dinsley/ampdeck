@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
 	isAcceptedUserRecord,
 	launchAmpCommand,
+	parseAmpVersion,
 	parseThreadExportDetails,
 	parseThreadUsageCost,
 	resolveAmpCommand,
@@ -62,6 +63,11 @@ describe("Amp CLI resolution", () => {
 });
 
 describe("Amp CLI output", () => {
+	it("extracts a bounded semantic version", () => {
+		assert.equal(parseAmpVersion("amp 1.2.3\n"), "1.2.3");
+		assert.equal(parseAmpVersion("unexpected"), undefined);
+	});
+
 	it("extracts the display cost from thread usage output", () => {
 		assert.equal(parseThreadUsageCost("$0.98\nDetails: https://ampcode.com/threads/T-example/usage\n"), "$0.98");
 		assert.equal(parseThreadUsageCost("€ 12.34\r\nDetails follow\r\n"), "€ 12.34");

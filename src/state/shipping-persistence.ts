@@ -1,42 +1,35 @@
 import streamDeck from "@elgato/streamdeck";
 
-import { getErrorMessage } from "../error-message";
+import { parseExecutableSetting, type ExecutableSetting, type ExecutableSettingsAccess } from "../amp/amp-cli-manager";
 import type { ShippingDispatchState } from "./thread-store-model";
 import type { ShippingStatePersistence } from "./thread-store";
+import { GlobalSettingsStore } from "./global-settings-store";
 
-const logger = streamDeck.logger.createScope("ShippingState");
-
-type AmpDeckGlobalSettings = {
-	[key: string]: boolean | number | string | null | undefined | AmpDeckGlobalSettings | AmpDeckGlobalSettings[];
-	shippingDispatches?: AmpDeckGlobalSettings[];
-};
+export const globalSettingsStore = new GlobalSettingsStore({
+	getGlobalSettings: () => streamDeck.settings.getGlobalSettings(),
+	setGlobalSettings: (settings) => streamDeck.settings.setGlobalSettings(settings),
+});
 
 export const streamDeckShippingStatePersistence: ShippingStatePersistence = {
-	async load(): Promise<ShippingDispatchState[]> {
-		try {
-			const settings = await streamDeck.settings.getGlobalSettings<AmpDeckGlobalSettings>();
-			const dispatches = Array.isArray(settings.shippingDispatches)
-				? settings.shippingDispatches.filter(isShippingDispatchState)
-				: [];
-			logger.debug(`Restored ${dispatches.length} shipping state record(s)`);
-			return dispatches;
-		} catch (error) {
-			logger.warn(`Unable to restore shipping state: ${getErrorMessage(error)}`);
-			return [];
-		}
+	async load() {
+		const value = (await globalSettingsStore.read()).shippingDispatches;
+		return Array.isArray(value) ? value.filter(isShippingDispatchState) : [];
 	},
+	save(dispatches) {
+		return globalSettingsStore.update((settings) => {
+			settings.shippingDispatches = dispatches;
+		});
+	},
+};
 
-	async save(dispatches: ShippingDispatchState[]): Promise<void> {
-		try {
-			const settings = await streamDeck.settings.getGlobalSettings<AmpDeckGlobalSettings>();
-			await streamDeck.settings.setGlobalSettings({
-				...settings,
-				shippingDispatches: dispatches,
-			});
-			logger.debug(`Persisted ${dispatches.length} shipping state record(s)`);
-		} catch (error) {
-			logger.warn(`Unable to persist shipping state: ${getErrorMessage(error)}`);
-		}
+export const streamDeckExecutableSettings: ExecutableSettingsAccess = {
+	async loadExecutableSetting() {
+		return parseExecutableSetting((await globalSettingsStore.read()).ampExecutable);
+	},
+	saveExecutableSetting(setting: ExecutableSetting) {
+		return globalSettingsStore.update((settings) => {
+			settings.ampExecutable = setting;
+		});
 	},
 };
 

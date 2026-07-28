@@ -2,14 +2,24 @@ import streamDeck from "@elgato/streamdeck";
 
 import { AmpTopSource, type AmpTopSnapshot, type AmpTopThread } from "../amp/amp-top-source";
 import { parseThreadExportDetails, parseThreadUsageCost, runAmpCommand } from "../amp/amp-command";
+import type { AmpCliManager, AmpCliState } from "../amp/amp-cli-manager";
 import type { ExecutionOrigin } from "../amp/amp-top-model";
 import { parseThreadMetadataList, type AmpThreadMetadata } from "../amp/amp-threads-model";
 import { getErrorMessage } from "../error-message";
 import { reachedUsageBoundary } from "../model/thread-status";
 import { ShippingLifecycle, ThreadActionGate, type ShippingDispatchState } from "./thread-store-model";
+import {
+	classifyDiagnosticError,
+	commandAvailability,
+	initialAmpSourceDiagnostics,
+	type AmpSourceDiagnostics,
+	type ClassifiedDiagnosticError,
+	type CommandAvailability,
+} from "../diagnostics/diagnostics-model";
 
 type ThreadStoreListener = (snapshot: AmpTopSnapshot) => void;
-type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop">;
+type DiagnosticsListener = (diagnostics: AmpSourceDiagnostics) => void;
+type TopSource = Pick<AmpTopSource, "onSnapshot" | "start" | "stop"> & Partial<Pick<AmpTopSource, "onDiagnostics">>;
 
 const defaultDetailRetryDelaysMs = [30_000, 60_000];
 const defaultDetailMinimumIntervalMs = 30_000;
@@ -29,6 +39,7 @@ export type ShippingStatePersistence = {
 type ThreadStoreOptions = {
 	source?: TopSource;
 	runCommand?: typeof runAmpCommand;
+	manager?: Pick<AmpCliManager, "run" | "launch" | "state" | "subscribe">;
 	shippingPersistence?: ShippingStatePersistence;
 	shippingStartTimeoutMs?: number;
 	detailMinimumIntervalMs?: number;
@@ -49,6 +60,7 @@ export class ThreadStore {
 	private readonly detailUpdatedAt = new Map<string, number>();
 	private readonly executionOrigins = new Map<string, ExecutionOrigin>();
 	private readonly listeners = new Set<ThreadStoreListener>();
+	private readonly diagnosticsListeners = new Set<DiagnosticsListener>();
 	private reconciliationInFlight = false;
 	private reconciliationInventoryComplete = false;
 	private reconciliationWarningLogged = false;
@@ -61,6 +73,7 @@ export class ThreadStore {
 	private readonly shippingPersistence: ShippingStatePersistence | undefined;
 	private readonly source: TopSource;
 	private readonly runCommand: typeof runAmpCommand;
+	private readonly manager: ThreadStoreOptions["manager"];
 	private readonly tokensUsed = new Map<string, number>();
 	private readonly usageCosts = new Map<string, string>();
 	private topSnapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
@@ -68,12 +81,20 @@ export class ThreadStore {
 	private readonly workingDetailFallbackMs: number;
 
 	selectionRevision = 0;
+	diagnostics: AmpSourceDiagnostics = initialAmpSourceDiagnostics;
+	lastCommandError: ClassifiedDiagnosticError | undefined;
 	selectedThreadId: string | undefined;
 	snapshot: AmpTopSnapshot = { connection: "connecting", threads: [] };
 
 	constructor(options: ThreadStoreOptions = {}) {
 		this.source = options.source ?? new AmpTopSource();
-		this.runCommand = options.runCommand ?? runAmpCommand;
+		this.manager = options.manager;
+		this.runCommand =
+			options.runCommand ??
+			((args, timeout, maximum) => {
+				if (this.manager) return this.manager.run(args, timeout, maximum);
+				return runAmpCommand(args, timeout, maximum);
+			});
 		this.detailMinimumIntervalMs = options.detailMinimumIntervalMs ?? defaultDetailMinimumIntervalMs;
 		this.detailRetryDelaysMs = options.detailRetryDelaysMs ?? defaultDetailRetryDelaysMs;
 		this.workingDetailFallbackMs = options.workingDetailFallbackMs ?? defaultWorkingDetailFallbackMs;
@@ -96,10 +117,49 @@ export class ThreadStore {
 			}
 			if (connectionBecameLive && this.detailUsers > 0) this.requestSelectedDetails();
 		});
+		this.source.onDiagnostics?.((diagnostics) => {
+			this.diagnostics = diagnostics;
+			for (const listener of this.diagnosticsListeners) listener(diagnostics);
+		});
+		this.manager?.subscribe(() => {
+			this.selectionRevision += 1;
+			this.notify();
+		});
 	}
 
 	get selectedThread(): AmpTopThread | undefined {
 		return this.snapshot.threads.find((thread) => thread.id === this.selectedThreadId);
+	}
+
+	get commandAvailability(): CommandAvailability {
+		if (this.manager && this.manager.state.status !== "compatible") {
+			return { enabled: false, state: "disabled", reason: "Amp compatibility preflight has not passed." };
+		}
+		const thread = this.selectedThread;
+		return commandAvailability(this.snapshot, thread, Boolean(thread && this.actionGate.isBlocked(thread.id)));
+	}
+
+	get cliState(): AmpCliState | undefined {
+		return this.manager?.state;
+	}
+	runThreadCommand(args: string[]): Promise<string> {
+		return this.runCommand(args);
+	}
+	launchThreadCommand(args: string[], threadId: string): Promise<void> {
+		return this.manager
+			? this.manager.launch(args, threadId)
+			: Promise.reject(new Error("Amp compatibility preflight has not passed"));
+	}
+
+	recordCommandError(error: unknown): void {
+		this.lastCommandError = classifyDiagnosticError(error);
+		for (const listener of this.diagnosticsListeners) listener(this.diagnostics);
+	}
+
+	subscribeDiagnostics(listener: DiagnosticsListener): () => void {
+		this.diagnosticsListeners.add(listener);
+		listener(this.diagnostics);
+		return () => this.diagnosticsListeners.delete(listener);
 	}
 
 	tryAcquireThreadAction(threadId: string): boolean {
@@ -228,6 +288,7 @@ export class ThreadStore {
 		this.detailUsers = 0;
 		this.users = 0;
 		this.listeners.clear();
+		this.diagnosticsListeners.clear();
 	}
 
 	private notify(): void {
@@ -416,15 +477,21 @@ export class ThreadStore {
 
 	private async restoreShippingState(): Promise<void> {
 		if (!this.shippingPersistence) return;
-		this.shippingLoadPromise ??= this.shippingPersistence.load().then((dispatches) => {
-			this.shippingLifecycle.restore(dispatches);
-			if (this.topSnapshot.connection === "live") {
-				this.shippingLifecycle.reconcile(this.topSnapshot.threads);
-			}
-			this.persistShippingState();
-			this.scheduleShippingExpiry();
-			this.rebuildSnapshot();
-		});
+		this.shippingLoadPromise ??= this.shippingPersistence
+			.load()
+			.then((dispatches) => {
+				this.shippingLifecycle.restore(dispatches);
+				if (this.topSnapshot.connection === "live") {
+					this.shippingLifecycle.reconcile(this.topSnapshot.threads);
+				}
+				this.persistShippingState();
+				this.scheduleShippingExpiry();
+				this.rebuildSnapshot();
+			})
+			.catch(() => {
+				this.shippingLoadPromise = undefined;
+				logger.warn("Unable to restore persisted shipping state");
+			});
 		await this.shippingLoadPromise;
 	}
 

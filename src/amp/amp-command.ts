@@ -17,6 +17,7 @@ type LaunchAmpCommandOptions = {
 	command?: string;
 	timeoutMs?: number;
 	appendStreamJson?: boolean;
+	logFailures?: boolean;
 };
 
 export function resolveAmpCommand(
@@ -130,7 +131,7 @@ export function launchAmpCommand(
 			if (!settled) {
 				settled = true;
 				reject(error);
-			} else {
+			} else if (options.logFailures !== false) {
 				logger.warn(`Accepted Amp command later failed: ${error.message}`);
 			}
 		});
@@ -145,7 +146,7 @@ export function launchAmpCommand(
 			if (!settled) {
 				settled = true;
 				reject(new Error(errorDetail || `Amp exited before accepting the command (${code ?? "unknown"})`));
-			} else if (accepted && code !== 0) {
+			} else if (accepted && code !== 0 && options.logFailures !== false) {
 				logger.warn(`Accepted Amp command later exited (${code ?? "unknown"})${errorDetail ? `: ${errorDetail}` : ""}`);
 			}
 		});
@@ -167,6 +168,10 @@ export function parseThreadUsageCost(output: string): string | undefined {
 		.map((line) => line.trim())
 		.find((line) => /^[$€£]\s?\d/.test(line))
 		?.slice(0, 20);
+}
+
+export function parseAmpVersion(output: string): string | undefined {
+	return output.match(/\b\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/u)?.[0];
 }
 
 export type ThreadExportDetails = {
