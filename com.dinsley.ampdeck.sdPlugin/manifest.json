@@ -64,7 +64,12 @@
 			"Controllers": ["Keypad"],
 			"SupportedInKeyLogicActions": false,
 			"SupportedInMultiActions": false,
-			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
+			"States": [
+				{
+					"Image": "imgs/actions/common/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		},
 		{
 			"Name": "Archive Thread",
@@ -75,7 +80,12 @@
 			"Controllers": ["Keypad"],
 			"SupportedInKeyLogicActions": false,
 			"SupportedInMultiActions": false,
-			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
+			"States": [
+				{
+					"Image": "imgs/actions/common/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		},
 		{
 			"Name": "Review Thread",
@@ -86,7 +96,12 @@
 			"Controllers": ["Keypad"],
 			"SupportedInKeyLogicActions": false,
 			"SupportedInMultiActions": false,
-			"States": [{ "Image": "imgs/actions/common/key", "TitleAlignment": "middle" }]
+			"States": [
+				{
+					"Image": "imgs/actions/common/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		}
 	],
 	"Category": "Amp Deck",
@@ -120,6 +135,7 @@
 	"Nodejs": {
 		"Version": "24"
 	},
+	"PropertyInspectorPath": "ui/diagnostics.html",
 	"SupportURL": "https://github.com/dinsley/ampdeck/issues",
 	"UUID": "com.dinsley.ampdeck"
 }

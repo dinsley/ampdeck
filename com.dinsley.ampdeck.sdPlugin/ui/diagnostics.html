@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Amp Deck diagnostics</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				font-family: system-ui, sans-serif;
+			}
+			body {
+				margin: 12px;
+				color: #ddd;
+				background: #2d2d2d;
+				font-size: 12px;
+			}
+			h1 {
+				margin: 0 0 4px;
+				color: #fff;
+				font-size: 15px;
+			}
+			p {
+				margin: 0 0 12px;
+				color: #aaa;
+				line-height: 1.4;
+			}
+			dl {
+				margin: 0;
+			}
+			.row {
+				padding: 7px 0;
+				border-bottom: 1px solid #444;
+			}
+			dt {
+				color: #aaa;
+			}
+			dd {
+				margin: 2px 0 0;
+				color: #fff;
+				overflow-wrap: anywhere;
+			}
+			.controls {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 8px;
+				margin-top: 12px;
+			}
+			.executable {
+				margin: 12px 0;
+				padding: 10px;
+				border: 1px solid #555;
+			}
+			.executable label {
+				display: block;
+				margin: 6px 0;
+			}
+			.executable input[type="text"] {
+				box-sizing: border-box;
+				width: 100%;
+				padding: 7px;
+				color: #fff;
+				background: #222;
+				border: 1px solid #666;
+			}
+			button {
+				min-height: 32px;
+				border: 1px solid #666;
+				border-radius: 4px;
+				color: #fff;
+				background: #444;
+				cursor: pointer;
+			}
+			button:hover {
+				background: #555;
+			}
+			button:focus-visible {
+				outline: 2px solid #5aa9ff;
+				outline-offset: 2px;
+			}
+			button:disabled {
+				cursor: wait;
+				opacity: 0.55;
+			}
+			#status {
+				min-height: 18px;
+				margin-top: 10px;
+				color: #b9d8ff;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Amp Deck diagnostics</h1>
+		<p>
+			Local health information and Amp CLI configuration. Reports omit threads, prompts, paths, authentication data, and
+			command output.
+		</p>
+		<dl id="fields" aria-live="polite">
+			<div class="row">
+				<dt>Status</dt>
+				<dd>Connecting…</dd>
+			</div>
+		</dl>
+		<fieldset class="executable">
+			<legend>Amp executable</legend>
+			<label><input type="radio" name="mode" value="automatic" checked /> Automatic</label>
+			<label><input type="radio" name="mode" value="custom" /> Custom absolute path</label>
+			<label for="path">Executable path</label>
+			<input id="path" type="text" autocomplete="off" spellcheck="false" aria-describedby="status" />
+			<div class="controls">
+				<button id="save" type="button">Save and test</button><button id="reset" type="button">Reset</button>
+			</div>
+		</fieldset>
+		<div class="controls">
+			<button id="refresh" type="button" aria-label="Refresh Amp Deck diagnostics">Refresh</button>
+			<button id="test" type="button" aria-label="Test the Amp CLI connection">Test connection</button>
+			<button id="copy" type="button" aria-label="Copy sanitized diagnostics report">Copy report</button>
+			<button id="help" type="button" aria-label="Open Amp Deck troubleshooting documentation">Troubleshooting</button>
+		</div>
+		<div id="status" role="status" aria-live="polite"></div>
+		<script>
+			(() => {
+				let socket;
+				let report = "";
+				let refreshPending = false;
+				let executableInitialized = false;
+				let previousConnectionState = "idle";
+				let actionUuid;
+				let actionContext;
+				const fields = document.getElementById("fields");
+				const status = document.getElementById("status");
+				const testButton = document.getElementById("test");
+				const saveButton = document.getElementById("save");
+				const resetButton = document.getElementById("reset");
+				const pathInput = document.getElementById("path");
+				const modeInputs = [...document.querySelectorAll('input[name="mode"]')];
+				const send = (type, payload = {}) =>
+					socket?.readyState === WebSocket.OPEN &&
+					socket.send(
+						JSON.stringify({
+							event: "sendToPlugin",
+							context: actionContext,
+							action: actionUuid,
+							payload: { type, ...payload },
+						}),
+					);
+				window.connectElgatoStreamDeckSocket = (port, uuid, event, info, actionInfoJson) => {
+					const actionInfo = JSON.parse(actionInfoJson);
+					actionUuid = actionInfo.action;
+					actionContext = actionInfo.context;
+					socket = new WebSocket(`ws://127.0.0.1:${port}`);
+					socket.onopen = () => {
+						socket.send(JSON.stringify({ event, uuid }));
+						send("request");
+					};
+					socket.onmessage = ({ data }) => {
+						const message = JSON.parse(data);
+						if (message.event !== "sendToPropertyInspector" || message.payload?.type !== "diagnostics") return;
+						report = message.payload.report;
+						fields.replaceChildren(
+							...message.payload.fields.map(({ label, value }) => {
+								const row = document.createElement("div");
+								row.className = "row";
+								const term = document.createElement("dt");
+								term.textContent = label;
+								const detail = document.createElement("dd");
+								detail.textContent = value;
+								row.append(term, detail);
+								return row;
+							}),
+						);
+						const running = message.payload.connectionTest.state === "running";
+						const operationFinished = previousConnectionState === "running" && !running;
+						previousConnectionState = message.payload.connectionTest.state;
+						for (const control of [testButton, saveButton, resetButton, pathInput, ...modeInputs])
+							control.disabled = running;
+						if (!executableInitialized || operationFinished) {
+							executableInitialized = true;
+							const executable = message.payload.executable;
+							document.querySelector(`input[name="mode"][value="${executable.mode}"]`).checked = true;
+							pathInput.value = executable.mode === "custom" ? executable.path : "";
+						}
+						if (running) status.textContent = "Testing Amp connection…";
+						else if (message.payload.connectionTest.state === "passed")
+							status.textContent = `Amp CLI compatibility passed (Amp ${message.payload.connectionTest.version}).`;
+						else if (message.payload.connectionTest.state === "failed")
+							status.textContent = message.payload.connectionTest.error.message;
+						else if (refreshPending) {
+							refreshPending = false;
+							status.textContent = "Diagnostics refreshed.";
+						}
+					};
+				};
+				document.getElementById("refresh").addEventListener("click", () => {
+					refreshPending = true;
+					status.textContent = "Refreshing diagnostics…";
+					send("refresh");
+				});
+				testButton.addEventListener("click", () => send("test-connection"));
+				saveButton.addEventListener("click", () => {
+					const mode = document.querySelector('input[name="mode"]:checked').value;
+					status.textContent = "Saving and testing executable…";
+					send("save-executable", {
+						mode,
+						path: mode === "custom" ? pathInput.value : undefined,
+					});
+				});
+				resetButton.addEventListener("click", () => {
+					document.querySelector('input[value="automatic"]').checked = true;
+					pathInput.value = "";
+					status.textContent = "Resetting to automatic selection…";
+					send("reset-executable");
+				});
+				document.getElementById("help").addEventListener("click", () => send("open-troubleshooting"));
+				document.getElementById("copy").addEventListener("click", async () => {
+					if (!report) {
+						status.textContent = "Diagnostics are not ready yet.";
+						return;
+					}
+					try {
+						await navigator.clipboard.writeText(report);
+						status.textContent = "Sanitized diagnostics copied.";
+					} catch {
+						status.textContent = "Unable to copy. Check clipboard permissions.";
+					}
+				});
+			})();
+		</script>
+	</body>
+</html>
