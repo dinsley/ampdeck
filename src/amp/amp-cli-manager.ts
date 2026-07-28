@@ -147,7 +147,7 @@ export class AmpCliManager {
 		const command = this.command;
 		if (state.status !== "compatible" || !command)
 			return Promise.reject(new Error("Amp compatibility preflight has not passed"));
-		return launchAmpCommand(args, threadId, { command, logFailures: false })
+		return launchAmpCommand(args, threadId, { command })
 			.catch((error: unknown) => {
 				throw new Error(classifyFailure(error).message);
 			})
