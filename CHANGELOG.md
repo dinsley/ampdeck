@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- A diagnostics property inspector for every Amp Deck action, with live health details, connection testing, sanitized support reports, and focused troubleshooting guidance.
+- A bounded Amp CLI compatibility preflight covering the minimum supported version, required commands and flags, authentication, and response schemas before monitoring or commands are enabled.
+- Global Automatic or Custom Amp executable selection with validation, safe test-before-save behavior, reset support, and consistent use across all Amp subprocesses.
 - Local aggregate token usage and execution-origin metadata on the Thread Status encoder, with faster parallel loading, activity-aware origin icons, and a consistent enlarged metadata layout.
 - An animated Stream Deck+ showcase covering ready, hold, sent, working, shipping, and completed states.
 - A supported-devices note, including the Stream Deck+ testing scope and future CORSAIR GALLEON 100 SD goal.
@@ -15,11 +18,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Routed live status, metadata, usage, archive, review, and ship operations through one revision-aware Amp CLI manager, with commands disabled whenever compatibility cannot be verified.
+- Serialized plugin-wide settings updates so executable configuration and persisted shipping state cannot overwrite one another.
 - Limited supplementary cost, token, and executor-origin enrichment to the visible Thread Status encoder with event-driven refreshes and bounded caching.
 - Refined the README layout, installation steps, device artwork, attribution, and release links.
 - Moved the unofficial-project notice below the overview images, linked Stream Deck+ references to Elgato, and removed internal inventory-schema details from the overview.
 - Simplified generated documentation assets to the transparent Puck artwork and animated device showcase.
 - Removed the duplicated project name from generated GitHub release names.
+
+### Security
+
+- Kept custom executable paths, raw Amp responses, thread content, authentication data, and unrestricted process output out of copied diagnostics and production error logs.
+- Rejected stale command results and invalid custom executable candidates without replacing the previous compatible configuration.
 
 ## [0.1.0] - 2026-07-27
 
