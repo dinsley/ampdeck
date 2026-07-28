@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { AmpTopThread } from "../src/amp/amp-top-model";
+import type { AmpTopThread, ExecutionOrigin } from "../src/amp/amp-top-model";
 import type { DisplayModel, PhaseMetadata } from "../src/model/thread-status";
 import { busyIndicatorFrameDurationMs } from "../src/rendering/busy-indicator";
 import {
@@ -36,11 +36,13 @@ const threadStates = [
 		status: "IDLE",
 		visualStatus: "idle",
 		executorConnected: true,
+		executionOrigin: "cli",
 		working: false,
 		position: "3/8",
 		updatedSecondsAgo: 18,
 		phaseSecondsAgo: 142,
 		usageCost: "$1.84",
+		tokensUsed: 128_400,
 	}),
 	threadState({
 		project: "DESIGN SYSTEM",
@@ -48,11 +50,13 @@ const threadStates = [
 		status: "WORKING",
 		visualStatus: "running",
 		executorConnected: true,
+		executionOrigin: "orb",
 		working: true,
 		position: "1/8",
 		updatedSecondsAgo: 3,
 		phaseSecondsAgo: 47,
 		usageCost: "$0.92",
+		tokensUsed: 87_250,
 	}),
 	threadState({
 		project: "DESKTOP APP",
@@ -60,12 +64,14 @@ const threadStates = [
 		status: "SHIPPING",
 		visualStatus: "shipping",
 		executorConnected: true,
+		executionOrigin: "cli",
 		working: true,
 		phase: "shipping",
 		position: "1/8",
 		updatedSecondsAgo: 8,
 		phaseSecondsAgo: 76,
 		usageCost: "$3.16",
+		tokensUsed: 1_248_600,
 	}),
 	threadState({
 		project: "API",
@@ -73,11 +79,13 @@ const threadStates = [
 		status: "DONE",
 		visualStatus: "done",
 		executorConnected: false,
+		executionOrigin: "orb",
 		working: false,
 		position: "6/8",
 		updatedSecondsAgo: 540,
 		phaseSecondsAgo: 540,
 		usageCost: "$2.05",
+		tokensUsed: 245_600,
 	}),
 ] as const;
 
@@ -182,12 +190,14 @@ function threadState(options: {
 	status: DisplayModel["status"];
 	visualStatus: DisplayModel["visualStatus"];
 	executorConnected: boolean;
+	executionOrigin: ExecutionOrigin;
 	working: boolean;
 	phase?: string;
 	position: string;
 	updatedSecondsAgo: number;
 	phaseSecondsAgo: number;
 	usageCost: string;
+	tokensUsed: number;
 }): {
 	model: DisplayModel;
 	surface: string;
@@ -199,8 +209,10 @@ function threadState(options: {
 		updatedAt: new Date(fixedNow - options.updatedSecondsAgo * 1000).toISOString(),
 		working: options.working,
 		executorConnected: options.executorConnected,
+		executionOrigin: options.executionOrigin,
 		phase: options.phase,
 		usageCost: options.usageCost,
+		tokensUsed: options.tokensUsed,
 	};
 	const model: DisplayModel = { status: options.status, visualStatus: options.visualStatus };
 	const phase: PhaseMetadata = {
