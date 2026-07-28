@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-28
+
 ### Added
 
 - A diagnostics property inspector for every Amp Deck action, with live health details, connection testing, sanitized support reports, and focused troubleshooting guidance.
@@ -46,5 +48,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Restricted thread links to HTTPS URLs on `ampcode.com`.
 - Disabled commands when Amp data is invalid or the selected thread state makes an action unsafe.
 
-[Unreleased]: https://github.com/dinsley/ampdeck/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dinsley/ampdeck/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dinsley/ampdeck/releases/tag/v0.2.0
 [0.1.0]: https://github.com/dinsley/ampdeck/releases/tag/v0.1.0
