@@ -162,3 +162,8 @@ The MIT License does not apply to bundled third-party software, Puck artwork, Am
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, project checks, hardware testing, and release instructions.
 
 [Stream Deck+]: https://www.elgato.com/ca/en/p/stream-deck-plus
+
+
+## Expand Windows integration coverage
+
+Documentation reference and guidelines for #8.
