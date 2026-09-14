@@ -53,7 +53,7 @@
 	},
 	"dependencies": {
 		"@elgato/streamdeck": "^2.1.0",
-		"entities": "^8.0.0"
+		"entities": "^8.1.0"
 	},
 	"allowScripts": {
 		"@swc/core@1.15.46": true,
